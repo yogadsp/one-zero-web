@@ -15,6 +15,9 @@ public/hot
 public_html/storage
 public_html/hot
 
+# Build files
+public/build
+
 storage/*.key
 .env
 Homestead.yaml

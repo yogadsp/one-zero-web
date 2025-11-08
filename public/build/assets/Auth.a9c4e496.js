@@ -1,1 +1,0 @@
-import{_ as e}from"./_plugin-vue_export-helper.cdc0426e.js";import{o as s,c as a,h as o}from"./app.c5503d14.js";const r={data(){return{appName:"e-TOEFL"}}},c={class:"wrapper",style:{"background-image":"url(https://siak.imamdev.com/assets/dist/img/bg.jpg)"}};function n(t,p,i,m,d,_){return s(),a("div",c,[o(t.$slots,"default")])}const f=e(r,[["render",n]]);export{f as L};

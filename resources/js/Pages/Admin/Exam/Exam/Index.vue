@@ -36,7 +36,7 @@
                         <table class="table mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th>No</th>
+                                    <th>Noo</th>
                                     <th>Kategori</th>
                                     <th>Judul Soal</th>
                                     <th>Judul Ujian</th>

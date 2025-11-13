@@ -128,6 +128,12 @@
 						<div class="menu-title">Ujian</div>
 					</Link>
 				</li>
+				<li>
+					<Link href="/user/categories" class="menu-clicked">
+						<div class="parent-icon"><i class='bx bx-library'></i></div>
+						<div class="menu-title">Ujian Saya</div>
+					</Link>
+				</li>
                 <li>
                     <Link href="/user/grades" class="menu-clicked">
 						<div class="parent-icon"><i class='bx bx-message-square-detail'></i></div>

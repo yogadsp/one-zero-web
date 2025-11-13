@@ -198,7 +198,7 @@ class ExamController extends Controller
 
         $duration = $grade->end_time > Carbon::now() || empty($grade->end_time) ? $grade->end_time->diffInMilliseconds(Carbon::now()) : 0;
 
-        return redirect()->route('user.exams.exam-show-questions', [$grade->exam_id, $grade->section]);
+        return redirect()->route('user.exams.exam-show-questions', [$grade->exam_id, $grade->section, $duration]);
     }
 
     public function examShowQuestion($id, $section, Request $request)
@@ -209,9 +209,10 @@ class ExamController extends Controller
 
         $grade = Grade::where('exam_id', $exam->id)->where('user_id', auth()->user()->id)->first();
 
-        if($grade->is_finished == 1) {
-            return redirect()->route('user.categories.exams.show', [$grade->category_id, $grade->exam_id]);
-        }
+        // bisa berkali - kali
+        // if($grade->is_finished == 1) {
+        //     return redirect()->route('user.categories.exams.show', [$grade->category_id, $grade->exam_id]);
+        // }
 
         if($section != $grade->section && empty($request->nextsection)) {
             return redirect()->route('user.exams.exam-show-questions', [$grade->exam_id, 1, $grade->section]);

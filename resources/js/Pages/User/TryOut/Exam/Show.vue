@@ -92,21 +92,22 @@
                   </tr>
                   <tr>
                     <td colspan="3">
-                      <div class="text-center" v-if="!grade">
+                      <!-- <div class="text-center" v-if="!grade"> -->
+                      <div class="text-center">
                         <button @click="confirmStart(exam.id)" class="btn btn-sm btn-primary">Mulai Kerjakan</button>
                       </div>
 
-                      <div class="text-center" v-else-if="grade && grade.is_finished == 0">
+                      <!-- <div class="text-center" v-else-if="grade && grade.is_finished == 0">
                         <Link :href="`/user/exams/${exam.id}/exam-start`" class="btn btn-sm btn-warning">Lanjut Mengerjakan</Link>
                       </div>
                       <div class="text-center" v-else-if="grade && grade.is_finished == 1 && grade.is_blocked == 0">
-                        <Link :href="`/user/grades/${grade.id}`" class="btn btn-sm btn-success m-1">Lihat Hasil</Link>
+                        <Link :href="`/user/grades/${grade.id}`" class="btn btn-sm btn-success m-1">Lihat Hasil</Link> -->
                         <!-- <Link :href="`/user/exams/${exam.id}/exam-start?repeat=1`" class="btn btn-sm btn-primary m-1">Ulangi Pengerjaan</Link> -->
-                      </div>
+                      <!-- </div>
                       <div v-else class="text-center">
                         <Link :href="`/user/grades/${grade.id}`" class="btn btn-sm btn-success m-1">Lihat Hasil</Link>
                         <button class="btn btn-sm btn-danger m-1">Ujian Di Blokir Silakan Hubungi Admin</button>
-                      </div>
+                      </div> -->
                     </td>
                   </tr>
                 </tbody>

@@ -32,7 +32,7 @@
                 <div class="text-end">
                   <VueCountdown
                     :transform="transform"
-                    :time=duration.value
+                    :time="duration"
                     @progress="handleChangeDuration"
                     @end="showModalEndTimeExam = true"
                     v-slot="{ hours, minutes, seconds }">
@@ -415,12 +415,9 @@ export default {
     const counter = ref(0);
     const counterListening = ref(0);
 
-    // const duration = ref(props.duration);
-    const duration = ref(Number(props.duration) || props.duration);
-    console.log('initial duration prop:', props.duration, 'duration.value:', duration.value);
+    const duration = ref(props.duration);
 
     const handleChangeDuration = () => {
-      console.log("handle change duration" + duration.value);
       duration.value = duration.value - 1000;
       counter.value = counter.value + 1;
     };

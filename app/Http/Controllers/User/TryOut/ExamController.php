@@ -103,7 +103,7 @@ class ExamController extends Controller
         $grade = Grade::where('exam_id', $id)->where('user_id', auth()->user()->id)->first();
         $totalSection = ValueCategory::where('category_id', $exam->category_id)->count();
 
-        if(!$grade) {
+        // if(!$grade) {
             $answerInsert = [];
 
             $valueExam = ValueCategoryExam::where(['exam_id' => $exam->id, 'section' => 1])->first();
@@ -192,7 +192,7 @@ class ExamController extends Controller
             }
             $grade->answers = $answerInsert;
             $grade->save();
-        }
+        // }
 
         $quetions = array_column($grade->answers, 'question_id');
 
@@ -242,6 +242,9 @@ class ExamController extends Controller
 
         $duration = $grade->end_time > Carbon::now() || empty($grade->end_time) ? $grade->end_time->diffInMilliseconds(Carbon::now()) : 0;
 
+        // ensure duration in milliseconds
+        // $duration = $exam->duration * 1000;
+
         $gradeAnswers = $grade['answers'];
 
         $questionLists = array_filter($gradeAnswers, function ($var) use($section) {
@@ -251,6 +254,8 @@ class ExamController extends Controller
         $questionLists = empty($questionLists) ? [] : array_values($questionLists);
 
         $totalQuetions = count($questionLists);
+
+        // dd($questionLists);
 
         return inertia('User/TryOut/Exam/Question', [
             'exam' => $exam,

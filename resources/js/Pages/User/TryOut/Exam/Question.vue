@@ -265,22 +265,33 @@
               </div>
             </div>
             <div class="card-footer">
-              <button
-                v-if="section == lastSection"
-                @click="showModalEndExam = true"
-                class="btn btn-danger btn-md border-0 shadow w-100">
-                Akhiri Ujian
-              </button>
-              <button
-                v-else
-                @click="endExam"
-                class="btn btn-danger btn-md border-0 shadow w-100"
-                :disabled="isLoadingNextSection">
-                <div v-if="isLoadingNextSection" class="spinner-border spinner-border-sm" role="status">
-                  <span class="sr-only"></span>
-                </div>
-                <span v-else>Next Section</span>
-              </button>
+              <div class="btn-group" role="group">
+                <button
+                  v-if="section > 1"
+                  @click="endExam('previous')"
+                  class="btn btn-danger btn-md border-0 shadow w-100"
+                  :disabled="isLoadingNextSection">
+                  <div v-if="isLoadingNextSection" class="spinner-border spinner-border-sm" role="status">
+                    <span class="sr-only"></span>
+                  </div>
+                  <span v-else>Previous Section</span>
+                </button>
+                <button
+                  v-if="section < lastSection"
+                  @click="endExam('next')"
+                  class="btn btn-danger btn-md border-0 shadow w-100"
+                  :disabled="isLoadingNextSection">
+                  <div v-if="isLoadingNextSection" class="spinner-border spinner-border-sm" role="status">
+                    <span class="sr-only"></span>
+                  </div>
+                  <span v-else>Next Section</span>
+                </button>
+                <button
+                  @click="showModalEndExam = true"
+                  class="btn btn-danger btn-md border-0 shadow w-100">
+                  Akhiri Ujian
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -547,7 +558,8 @@ export default {
     const endExam = (block = "") => {
       isLoadingNextSection.value = true;
 
-      if (props.section === props.lastSection || block === "block") {
+
+      if ((props.section === props.lastSection || block === "block") && block !== "previous") {
         Inertia.post(
           `/user/exams/${props.exam.id}/exam-end`,
           {
@@ -585,7 +597,7 @@ export default {
             },
           }
         );
-      } else {
+      } else if (block === "next") {
         Inertia.get(
           `/user/exams/${props.exam.id}/sections/${props.section + 1}?nextsection=1`,
           {},
@@ -599,6 +611,24 @@ export default {
         Swal.fire({
           title: "Success!",
           text: "Continue to the next section...",
+          icon: "success",
+          showConfirmButton: false,
+          timer: 2000,
+        });
+      } else if (block === "previous") {
+        Inertia.get(
+          `/user/exams/${props.exam.id}/sections/${props.section - 1}?nextsection=1`,
+          {},
+          {
+            onFinish: () => {
+              isLoadingNextSection.value = false;
+            },
+          }
+        );
+
+        Swal.fire({
+          title: "Success!",
+          text: "Continue to the previous section...",
           icon: "success",
           showConfirmButton: false,
           timer: 2000,

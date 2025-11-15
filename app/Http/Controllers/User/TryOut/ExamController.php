@@ -230,8 +230,13 @@ class ExamController extends Controller
             $addMinutes = 560;
         }
 
-        if($grade->section < $section) {
-            $grade->section = $grade->section + 1;
+        if($grade->section < $section || $grade->section > $section) {
+            if($grade->section < $section) {
+                $grade->section = $grade->section + 1;
+            } else if($grade->section > $section) {
+                $grade->section = $grade->section - 1;
+            }
+
             $grade->number = (int) 0;
             if($exam->duration_type == 2) {
                 $grade->end_time = Carbon::now()->addMinutes($addMinutes)->addSeconds(2);
@@ -254,8 +259,6 @@ class ExamController extends Controller
         $questionLists = empty($questionLists) ? [] : array_values($questionLists);
 
         $totalQuetions = count($questionLists);
-
-        // dd($questionLists);
 
         return inertia('User/TryOut/Exam/Question', [
             'exam' => $exam,

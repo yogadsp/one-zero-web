@@ -95,13 +95,31 @@ class ExamController extends Controller
         $grade = Grade::where('exam_id', $id)->where('user_id', auth()->user()->id)->first();
         $gradeOld = empty($grade->grade_old) ? 0 : $grade->grade_old;
 
-        if($request->repeat == 1) {
-            Grade::where('exam_id', $id)->where('user_id', auth()->user()->id)->delete();
-            GradeDetail::where('exam_id', $id)->where('user_id', auth()->user()->id)->delete();
-        }
+        // if($request->repeat == 1) {
+        //     Grade::where('exam_id', $id)->where('user_id', auth()->user()->id)->delete();
+        //     GradeDetail::where('exam_id', $id)->where('user_id', auth()->user()->id)->delete();
+        // }
 
         $grade = Grade::where('exam_id', $id)->where('user_id', auth()->user()->id)->first();
         $totalSection = ValueCategory::where('category_id', $exam->category_id)->count();
+
+        $lastGrade = Grade::where('exam_id', $id)
+                    ->where('user_id', auth()->user()->id)
+                    ->orderBy('created_at', 'DESC')
+                    ->first();
+        
+        // jika ada ujian yang belum selesai, lanjutkan
+        if(!empty($lastGrade) && $lastGrade->is_finished == 0) {
+            return redirect()->route('user.exams.exam-show-questions', [$lastGrade->exam_id, $lastGrade->section, $lastGrade->end_time->diffInMilliseconds(Carbon::now())]);
+        }
+
+        $countGrade = Grade::where('exam_id', $id)->where('user_id', auth()->user()->id)->count();
+
+        // batasi maksimal 5 histori ujian
+        if ($countGrade > 5) {
+            Grade::where('exam_id', $id)->where('user_id', auth()->user()->id)->orderBy('created_at', 'ASC')->skip(1)->first()->delete();
+            GradeDetail::where('exam_id', $id)->where('user_id', auth()->user()->id)->orderBy('created_at', 'ASC')->skip(1)->first()->delete();
+        }
 
         // if(!$grade) {
             $answerInsert = [];
@@ -207,7 +225,7 @@ class ExamController extends Controller
 
         $exam = $this->examService->find($id);
 
-        $grade = Grade::where('exam_id', $exam->id)->where('user_id', auth()->user()->id)->first();
+        $grade = Grade::where('exam_id', $exam->id)->where('user_id', auth()->user()->id)->orderBy('created_at', 'DESC')->first();
 
         // bisa berkali - kali
         // if($grade->is_finished == 1) {
@@ -391,7 +409,6 @@ class ExamController extends Controller
         $valueCategories = ValueCategory::where('category_id', $exam->category_id)->orderBy('section', 'ASC')->get();
 
         if($exam->questionTitle->add_value_category == 1 && ($exam->questionTitle->assessment_type == 1)) {
-
             $grades = [];
 
             foreach($valueCategories as $index => $valueCategory) {
@@ -434,12 +451,18 @@ class ExamController extends Controller
 
             $finalGradeExam = 0;
 
+            // grades per section
             foreach($grades as $gradeData) {
                 $detailValueCategories = DetailValueCategory::where('value_category_id', $gradeData['value_category_id'])->get();
                 $finalGrade = 0;
                 foreach($detailValueCategories as $detailValueCategory) {
-                    if($gradeData['grade'] >= $detailValueCategory->min_grade && $gradeData['grade'] <= $detailValueCategory->max_grade) {
-                        $finalGrade = $detailValueCategory->final_grade;
+                    // if($gradeData['grade'] >= $detailValueCategory->min_grade && $gradeData['grade'] <= $detailValueCategory->max_grade) {
+                    //     $finalGrade = $detailValueCategory->final_grade;
+                    // }
+
+                    // jika min dan max sama dengan final maka gunakan perhitungan ini
+                    if(($detailValueCategory->min_grade == $detailValueCategory->max_grade) && ($detailValueCategory->max_grade == $detailValueCategory->final_grade)) {
+                        $finalGrade = $gradeData['total_correct'] * $detailValueCategory->final_grade;
                     }
                 }
 

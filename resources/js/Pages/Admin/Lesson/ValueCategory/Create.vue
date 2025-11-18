@@ -54,6 +54,7 @@
                                 <option value="">[ Pilih ]</option>
                                 <option value="1">Nilai = Jumlah Benar : Total Soal</option>
                                 <option value="2">Nilai = Jumlah Jawaban Benar</option>
+                                <option value="3">Nilai = Jumlah Per Option</option>
                             </select>
                             <div v-if="errors.assessment_type" class="invalid-feedback">
                                 {{ errors.assessment_type }}

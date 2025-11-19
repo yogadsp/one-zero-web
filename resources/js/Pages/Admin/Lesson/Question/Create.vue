@@ -128,6 +128,16 @@
                 {{ errors.audio_answer_time }}
               </div>
             </div>
+            <div class="col-12">
+              <label class="form-label">Pilihan Memiliki Point?</label>
+              <select v-model="form.option_has_point" :class="{ 'is-invalid': errors.option_has_point }" @change="changeOptionPoints()" class="form-select">
+                <option value="0">Tidak</option>
+                <option value="1">Ya</option>
+              </select>
+              <div v-if="errors.option_has_point" class="invalid-feedback">
+                {{ errors.option_has_point }}
+              </div>
+            </div>
             <div v-if="form.type == 1" class="col-12">
               <label class="form-label"><b>Soal</b></label>
               <Editor
@@ -220,6 +230,14 @@
               </div>
             </div>
 
+            <div v-if="1 <= questionTitle.total_choices && form.option_has_point == 1" class="col-12">
+              <label class="form-label">Point Pilihan A</label>
+              <input type="number" class="form-control" v-model="form.option_1_point" :class="{ 'is-invalid': errors.option_1_point }" placeholder="Point Pilihan A" />
+              <div v-if="errors.option_1_point" class="invalid-feedback">
+                {{ errors.option_1_point }}
+              </div>
+            </div>
+
             <div v-if="2 <= questionTitle.total_choices && form.type == 1" class="col-12">
               <label class="form-label"><b>Pilihan B</b></label>
               <Editor
@@ -262,6 +280,14 @@
               />
               <div v-if="errors.option_2">
                 {{ errors.option_2 }}
+              </div>
+            </div>
+
+            <div v-if="2 <= questionTitle.total_choices && form.option_has_point == 1" class="col-12">
+              <label class="form-label">Point Pilihan B</label>
+              <input type="number" class="form-control" v-model="form.option_2_point" :class="{ 'is-invalid': errors.option_2_point }" placeholder="Point Pilihan B" />
+              <div v-if="errors.option_2_point" class="invalid-feedback">
+                {{ errors.option_2_point }}
               </div>
             </div>
 
@@ -310,6 +336,14 @@
               </div>
             </div>
 
+            <div v-if="3 <= questionTitle.total_choices && form.option_has_point == 1" class="col-12">
+              <label class="form-label">Point Pilihan C</label>
+              <input type="number" class="form-control" v-model="form.option_3_point" :class="{ 'is-invalid': errors.option_3_point }" placeholder="Point Pilihan C" />
+              <div v-if="errors.option_3_point" class="invalid-feedback">
+                {{ errors.option_3_point }}
+              </div>
+            </div>
+
             <div v-if="4 <= questionTitle.total_choices && form.type == 1" class="col-12">
               <label class="form-label"><b>Pilihan D</b></label>
               <Editor
@@ -355,6 +389,14 @@
               </div>
             </div>
 
+            <div v-if="4 <= questionTitle.total_choices && form.option_has_point == 1" class="col-12">
+              <label class="form-label">Point Pilihan D</label>
+              <input type="number" class="form-control" v-model="form.option_4_point" :class="{ 'is-invalid': errors.option_4_point }" placeholder="Point Pilihan D" />
+              <div v-if="errors.option_4_point" class="invalid-feedback">
+                {{ errors.option_4_point }}
+              </div>
+            </div>
+
             <div v-if="5 <= questionTitle.total_choices && form.type == 1" class="col-12">
               <label class="form-label"><b>Pilihan E</b></label>
               <Editor
@@ -397,6 +439,14 @@
               />
               <div v-if="errors.option_5">
                 {{ errors.option_5 }}
+              </div>
+            </div>
+
+            <div v-if="5 <= questionTitle.total_choices && form.option_has_point == 1" class="col-12">
+              <label class="form-label">Point Pilihan E</label>
+              <input type="number" class="form-control" v-model="form.option_5_point" :class="{ 'is-invalid': errors.option_5_point }" placeholder="Point Pilihan E" />
+              <div v-if="errors.option_5_point" class="invalid-feedback">
+                {{ errors.option_5_point }}
               </div>
             </div>
 
@@ -529,54 +579,92 @@ export default {
       discussion: "",
       type: 1,
       direction: "",
+      option_has_point: "0",
+      option_1_point: "",
+      option_2_point: "",
+      option_3_point: "",
+      option_4_point: "",
+      option_5_point: "",
     });
 
     // submit method
     const submit = () => {
-      // send data to server
-      Inertia.post(
-        `/admin/question-titles/${props.questionTitle.id}/questions`,
-        {
-          forceFormData: true,
-          // data
-          add_value_category: props.questionTitle.add_value_category,
-          question_title_id: props.questionTitle.id,
-          value_category_id: form.value_category_id,
-          audio_input: form.audio_input,
-          audio: form.audio,
-          audio_played_limit: form.audio_played_limit,
-          audio_answer_time: form.audio_answer_time,
-          question: form.question,
-          option_1: form.option_1,
-          option_2: form.option_2,
-          option_3: form.option_3,
-          option_4: form.option_4,
-          option_5: form.option_5,
-          answer: form.answer,
-          discussion: form.discussion,
-          type: form.type,
-          direction: form.direction,
-        },
-        {
-          onSuccess: (response) => {
-            console.log(response);
-            //show success alert
-            // Swal.fire({
-            //     title: 'Success!',
-            //     text: 'Soal Berhasil Disimpan!.',
-            //     icon: 'success',
-            //     showConfirmButton: false,
-            //     timer: 1000
-            // });
-          },
+      // validasi duplicate option points
+      if (form.option_has_point == 1) {
+        if (isOptionPointsDuplicate()) {
+          Swal.fire({
+            title: "Error!",
+            text: "Point pilihan tidak boleh ada yang sama!",
+            icon: "error",
+            showConfirmButton: true,
+          });
+          return;
         }
-      );
+      } else {
+        // send data to server
+        Inertia.post(
+          `/admin/question-titles/${props.questionTitle.id}/questions`,
+          {
+            forceFormData: true,
+            // data
+            add_value_category: props.questionTitle.add_value_category,
+            question_title_id: props.questionTitle.id,
+            value_category_id: form.value_category_id,
+            audio_input: form.audio_input,
+            audio: form.audio,
+            audio_played_limit: form.audio_played_limit,
+            audio_answer_time: form.audio_answer_time,
+            question: form.question,
+            option_1: form.option_1,
+            option_2: form.option_2,
+            option_3: form.option_3,
+            option_4: form.option_4,
+            option_5: form.option_5,
+            answer: form.answer,
+            discussion: form.discussion,
+            type: form.type,
+            direction: form.direction,
+          },
+          {
+            onSuccess: (response) => {
+              console.log(response);
+              //show success alert
+              // Swal.fire({
+              //     title: 'Success!',
+              //     text: 'Soal Berhasil Disimpan!.',
+              //     icon: 'success',
+              //     showConfirmButton: false,
+              //     timer: 1000
+              // });
+            },
+          }
+        );
+      }
+
     };
+
+    function isOptionPointsDuplicate() {
+      const optionPoints = [form.option_1_point, form.option_2_point, form.option_3_point, form.option_4_point, form.option_5_point];
+      const uniqueValues = new Set(optionPoints);
+      return uniqueValues.size !== optionPoints.length;
+    }
+
+    function changeOptionPoints() {
+      // reset option points when option_has_point is changed
+      if (form.option_has_point == 0) {
+        form.option_1_point = "";
+        form.option_2_point = "";
+        form.option_3_point = "";
+        form.option_4_point = "";
+        form.option_5_point = "";
+      }
+    }
 
     // return form state and submit method
     return {
       form,
       submit,
+      changeOptionPoints,
     };
   },
 };

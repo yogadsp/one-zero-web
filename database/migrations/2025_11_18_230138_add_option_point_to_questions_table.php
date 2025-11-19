@@ -17,6 +17,7 @@ return new class extends Migration
             $table->tinyInteger('option_3_point')->nullable();
             $table->tinyInteger('option_4_point')->nullable();
             $table->tinyInteger('option_5_point')->nullable();
+            $table->tinyInteger('option_has_point')->default(0)->after('section');
         });
     }
 
@@ -31,6 +32,7 @@ return new class extends Migration
             $table->dropColumn('option_3_point');
             $table->dropColumn('option_4_point');
             $table->dropColumn('option_5_point');
+            $table->dropColumn('option_has_point');
         });
     }
 };

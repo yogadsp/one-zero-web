@@ -589,18 +589,34 @@ export default {
 
     // submit method
     const submit = () => {
+      let isFormValid = true;
+      
       // validasi duplicate option points
       if (form.option_has_point == 1) {
         if (isOptionPointsDuplicate()) {
           Swal.fire({
             title: "Error!",
-            text: "Point pilihan tidak boleh ada yang sama!",
+            text: "Point pilihan tidak boleh ada yang sama atau tidak boleh kosong!",
             icon: "error",
             showConfirmButton: true,
           });
+          isFormValid = false;
           return;
         }
-      } else {
+
+        if (!isOptionPointsValid()) {
+          Swal.fire({
+            title: "Error!",
+            text: `Point pilihan harus antara 1 sampai ${props.questionTitle.total_choices}!`,
+            icon: "error",
+            showConfirmButton: true,
+          });
+          isFormValid = false;
+          return;
+        }
+      }
+
+      if (isFormValid) {
         // send data to server
         Inertia.post(
           `/admin/question-titles/${props.questionTitle.id}/questions`,
@@ -624,6 +640,12 @@ export default {
             discussion: form.discussion,
             type: form.type,
             direction: form.direction,
+            option_has_point: form.option_has_point,
+            option_1_point: form.option_1_point,
+            option_2_point: form.option_2_point,
+            option_3_point: form.option_3_point,
+            option_4_point: form.option_4_point,
+            option_5_point: form.option_5_point,
           },
           {
             onSuccess: (response) => {
@@ -643,10 +665,17 @@ export default {
 
     };
 
+    // validate duplicate option points
     function isOptionPointsDuplicate() {
       const optionPoints = [form.option_1_point, form.option_2_point, form.option_3_point, form.option_4_point, form.option_5_point];
       const uniqueValues = new Set(optionPoints);
       return uniqueValues.size !== optionPoints.length;
+    }
+
+    // validate option points range
+    function isOptionPointsValid() {
+      const optionPoints = [form.option_1_point, form.option_2_point, form.option_3_point, form.option_4_point, form.option_5_point];
+      return optionPoints.every(point => point !== "" && point !== null && !isNaN(point) && point >= 1 && point <= props.questionTitle.total_choices);
     }
 
     function changeOptionPoints() {

@@ -125,6 +125,13 @@
                                             <li v-if="4 <= questionTitle.total_choices" v-html="question.option_4" :class="{ 'text-success fw-bold': question.answer == 4 }"></li>
                                             <li v-if="5 <= questionTitle.total_choices" v-html="question.option_5" :class="{ 'text-success fw-bold': question.answer == 5 }"></li>
                                         </ol>
+                                        <div class="mb-2" v-if="question.option_has_point">
+                                            <b>Poin :
+                                            <span v-for="choice in questionTitle.total_choices">
+                                                {{ question['option_' + choice + '_point'] }}
+                                            </span>
+                                            </b>
+                                        </div>
                                     </div>
                                     <div v-else>
                                         <div v-html="question.direction"></div>

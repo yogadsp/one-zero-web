@@ -34,7 +34,13 @@ class Question extends Model
         'option_5',
         'answer',
         'discussion',
-        'section'
+        'section',
+        'option_has_point',
+        'option_1_point',
+        'option_2_point',
+        'option_3_point',
+        'option_4_point',
+        'option_5_point',
     ];
 
     public function questionTitle()

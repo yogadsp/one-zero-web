@@ -221,8 +221,9 @@
           </div>
         </div>
 
+        <!-- v-if="exam.show_question_number_navigation == 1 && questionLists[indexPage]['type'] == 1" -->
         <div
-          v-if="exam.show_question_number_navigation == 1 && questionLists[indexPage]['type'] == 1"
+          v-if="exam.show_question_number_navigation == 1"
           class="col-md-12 col-sm-12 col-xs-12"
           :class="{ 'col-lg-4': exam.show_question_number_navigation == 1 }">
           <div class="card">
@@ -234,32 +235,30 @@
               </div>
             </div>
             <div class="card-body" style="height: 450px; overflow-y: auto">
-              <div v-for="(question, index) in questionLists" :key="index">
-                <div v-if="question.type == 1" style="width: 20%; float: left">
-                  <div style="padding: 3px">
-                    <button @click="clickQuestion(index)" v-if="index == indexPage" class="btn btn-primary w-100">
-                      <small>{{ question.navigation_order }}</small>
-                    </button>
-                    <button
-                      @click="clickQuestion(index)"
-                      v-if="index != indexPage && question.answer == 0"
-                      class="btn btn-outline-primary w-100">
-                      <small>{{ question.navigation_order }}</small>
-                    </button>
-                    <button
-                      @click="clickQuestion(index)"
-                      v-if="index != indexPage && question.answer != 0"
-                      class="btn btn-success w-100">
-                      <small>{{ question.navigation_order }}</small>
-                    </button>
-                  </div>
-                </div>
-                <div v-if="question.type == 2" style="width: 100%; float: left">
-                  <div style="padding: 3px">
-                    <button v-if="index == indexPage" class="btn btn-warning w-100"><small>Directions</small></button>
-                    <button v-if="index != indexPage" class="btn btn-outline-warning w-100">
-                      <small>Directions</small>
-                    </button>
+              <div v-for="(valueCategories, valueCategoryIndex) in questionListAll" :key="valueCategoryIndex" style="margin-bottom: 25px;">
+                <h5 class="mb-3">{{ valueCategoryIndex }}</h5>
+                <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                <div v-for="(question, index) in valueCategories" :key="index">
+                    <div style="padding: 3px">
+                      <button 
+                        @click="clickQuestion(index)" 
+                        v-if="index == indexPage"
+                        class="btn btn-primary w-100">
+                        <small>{{ question.navigation_order }}</small>
+                      </button>
+                      <button
+                        @click="clickQuestion(index)"
+                        v-if="index != indexPage && question.answer == 0"
+                        class="btn btn-outline-primary w-100">
+                        <small>{{ question.navigation_order }}</small>
+                      </button>
+                      <button
+                        @click="clickQuestion(index)"
+                        v-if="index != indexPage && question.answer != 0"
+                        class="btn btn-success w-100">
+                        <small>{{ question.navigation_order }}</small>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -318,7 +317,7 @@
           Setelah mengakhiri ujian, Anda tidak dapat kembali ke ujian ini lagi. Yakin akan mengakhiri ujian?
         </div>
         <div class="modal-footer">
-          <button @click="endExam" type="button" class="btn btn-primary">Ya, Akhiri</button>
+          <button @click="endExam('end')" type="button" class="btn btn-primary">Ya, Akhiri</button>
           <button @click="showModalEndExam = false" type="button" class="btn btn-secondary">Tutup</button>
         </div>
       </div>
@@ -399,6 +398,7 @@ export default {
     exam: Object,
     duration: Object,
     questionLists: Object,
+    questionListAll: Object,
     section: Number,
     lastSection: Number,
     grade: Object,
@@ -558,8 +558,7 @@ export default {
     const endExam = (block = "") => {
       isLoadingNextSection.value = true;
 
-
-      if ((props.section === props.lastSection || block === "block") && block !== "previous") {
+      if (block === "block" || block === "end") {
         Inertia.post(
           `/user/exams/${props.exam.id}/exam-end`,
           {

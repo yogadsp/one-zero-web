@@ -155,9 +155,9 @@ class ExamController extends Controller
 
             for($i = 1; $i <= $totalSection; $i++) {
                 if($exam->random_question == 1) {
-                    $questions = Question::where('section', $i)->where('question_title_id', $exam->question_title_id)->inRandomOrder()->get();
+                    $questions = Question::where('section', $i)->where('question_title_id', $exam->question_title_id)->with('valueCategory')->inRandomOrder()->get();
                 } else {
-                    $questions = Question::where('section', $i)->where('question_title_id', $exam->question_title_id)->orderBy('created_at', 'ASC')->get();
+                    $questions = Question::where('section', $i)->where('question_title_id', $exam->question_title_id)->with('valueCategory')->orderBy('created_at', 'ASC')->get();
                 }
     
                 $navigation_order = 0;
@@ -182,6 +182,7 @@ class ExamController extends Controller
                         $answerInsert[] = [
                             'question_id' => $question->id,
                             'value_category_id' => $question->value_category_id,
+                            'value_category_name' => $question->valueCategory->name,
                             'type' => $question->type,
                             'direction' => $question->direction,
                             'question_order' => $question_order,
@@ -201,7 +202,13 @@ class ExamController extends Controller
                             'section' => $question->section,
                             'answer_order' => implode(",", $options),
                             'answer' => 0,
-                            'is_correct' => 'N'
+                            'is_correct' => 'N',
+                            'option_has_point' => $question->option_has_point,
+                            'option_1_point' => empty($question->option_1_point) ? null : $question->option_1_point,
+                            'option_2_point' => empty($question->option_2_point) ? null : $question->option_2_point,
+                            'option_3_point' => empty($question->option_3_point) ? null : $question->option_3_point,
+                            'option_4_point' => empty($question->option_4_point) ? null : $question->option_4_point,
+                            'option_5_point' => empty($question->option_5_point) ? null : $question->option_5_point,
                         ];
                     }
     
@@ -270,11 +277,24 @@ class ExamController extends Controller
 
         $gradeAnswers = $grade['answers'];
 
+        usort($gradeAnswers, function($a, $b) {
+            return $a['section'] <=> $b['section']; // Sort by section in ascending order
+        });
+
+        $questionListAll = [];
+
+        foreach($gradeAnswers as $gradeAnswer) {
+            $questionListAll[$gradeAnswer['value_category_name']][] = $gradeAnswer;
+        }
+
         $questionLists = array_filter($gradeAnswers, function ($var) use($section) {
             return ($var['section'] == $section);
         });
-
+        
         $questionLists = empty($questionLists) ? [] : array_values($questionLists);
+        
+        // dd($questionLists);
+
 
         $totalQuetions = count($questionLists);
 
@@ -282,6 +302,7 @@ class ExamController extends Controller
             'exam' => $exam,
             'grade' => $grade,
             'questionLists' => $questionLists,
+            'questionListAll' => $questionListAll,
             'duration' => $duration,
             'section' => (int) $grade->section,
             'indexPage' => (int) $grade->number,
@@ -414,16 +435,38 @@ class ExamController extends Controller
             foreach($valueCategories as $index => $valueCategory) {
                 if($exam->questionTitle->assessment_type == 1) {
                     $totalCorrect = array_filter($gradeAnswers, function ($var) use($valueCategory) {
-                        return ($var['value_category_id'] == $valueCategory->id && $var['is_correct'] == "Y" && $var['type'] == 1);
+                        return ($var['value_category_id'] == $valueCategory->id && $var['is_correct'] == "Y" && $var['type'] == 1 && $var['option_has_point'] == 0);
                     });
 
                     $totalWrong = array_filter($gradeAnswers, function ($var) use($valueCategory) {
-                        return ($var['value_category_id'] == $valueCategory->id && $var['is_correct'] == "N" && $var['type'] == 1);
+                        return ($var['value_category_id'] == $valueCategory->id && $var['is_correct'] == "N" && $var['type'] == 1 && $var['option_has_point'] == 0);
                     });
+
+                    $optionsHasPoint = array_filter($gradeAnswers, function ($var) use($valueCategory) {
+                        return ($var['value_category_id'] == $valueCategory->id && $var['type'] == 1 && $var['option_has_point'] == 1);
+                    });
+
+                    // hitung jawaban dengan poin
+                    if (count($optionsHasPoint) > 0) {
+                        $totalCorrect = 0;
+                        $totalWrong = 0;
+                        foreach($optionsHasPoint as $optionHasPoint) {
+                            if ($optionHasPoint['answer'] != 0) {
+                                $totalCorrect += $optionHasPoint['option_'.$optionHasPoint['answer'].'_point'];
+                                $totalWrong += 5 - $optionHasPoint['option_'.$optionHasPoint['answer'].'_point'];
+                            }
+                        }
+                    }
                 }
 
-                $totalCorrectFinal = count($totalCorrect);
-                $totalWrongFinal = count($totalWrong);
+                if (is_array($totalCorrect)) {
+                    $totalCorrectFinal = count($totalCorrect);
+                    $totalWrongFinal = count($totalWrong);
+                } else {
+                    $totalCorrectFinal = $totalCorrect;
+                    $totalWrongFinal = $totalWrong;
+                }
+
                 $totalQuestion = (int) $totalCorrectFinal + (int) $totalWrongFinal;
 
                 $grades[] = [
@@ -463,6 +506,9 @@ class ExamController extends Controller
                     // jika min dan max sama dengan final maka gunakan perhitungan ini
                     if(($detailValueCategory->min_grade == $detailValueCategory->max_grade) && ($detailValueCategory->max_grade == $detailValueCategory->final_grade)) {
                         $finalGrade = $gradeData['total_correct'] * $detailValueCategory->final_grade;
+                    // jika grade rentang atau jawaban yang memiliki point
+                    } else {
+                        $finalGrade = $gradeData['total_correct'];
                     }
                 }
 

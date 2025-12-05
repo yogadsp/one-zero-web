@@ -125,22 +125,22 @@
                   </div>
 
                   <div>
-                    <div v-html="questionLists[indexPage]['question']" class="prevent-select"></div>
+                    <div v-html="questionListAll[valueCategoryIndex][indexPage]['question']" class="prevent-select"></div>
                   </div>
                   <table>
                     <tbody v-if="exam.type_option == 1">
-                      <tr v-for="(answer, index) in questionLists[indexPage]['answer_order'].split(',')" :key="index">
+                      <tr v-for="(answer, index) in questionListAll[valueCategoryIndex][indexPage]['answer_order'].split(',')" :key="index">
                         <span>
                           <td width="50" style="padding: 10px">
                             <button
-                              v-if="answer == questionLists[indexPage]['answer']"
-                              @click="submitAnswer(questionLists[indexPage]['question_id'], answer)"
+                              v-if="answer == questionListAll[valueCategoryIndex][indexPage]['answer']"
+                              @click="submitAnswer(questionListAll[valueCategoryIndex][indexPage]['question_id'], answer)"
                               class="btn btn-success text-white">
                               {{ options[index] }}
                             </button>
                             <button
                               v-else
-                              @click="submitAnswer(questionLists[indexPage]['question_id'], answer)"
+                              @click="submitAnswer(questionListAll[valueCategoryIndex][indexPage]['question_id'], answer)"
                               class="btn btn-outline-primary w-100">
                               {{ options[index] }}
                             </button>
@@ -149,7 +149,7 @@
                             <p
                               class="prevent-select"
                               v-if="exam.show_answer == 1"
-                              v-html="questionLists[indexPage]['option_' + answer]"></p>
+                              v-html="questionListAll[valueCategoryIndex][indexPage]['option_' + answer]"></p>
                           </td>
                         </span>
                       </tr>
@@ -241,19 +241,19 @@
                 <div v-for="(question, index) in valueCategories" :key="index">
                     <div style="padding: 3px">
                       <button 
-                        @click="clickQuestion(index)" 
+                        @click="clickQuestion(index, valueCategoryIndex)" 
                         v-if="index == indexPage"
                         class="btn btn-primary w-100">
                         <small>{{ question.navigation_order }}</small>
                       </button>
                       <button
-                        @click="clickQuestion(index)"
+                        @click="clickQuestion(index, valueCategoryIndex)"
                         v-if="index != indexPage && question.answer == 0"
                         class="btn btn-outline-primary w-100">
                         <small>{{ question.navigation_order }}</small>
                       </button>
                       <button
-                        @click="clickQuestion(index)"
+                        @click="clickQuestion(index, valueCategoryIndex)"
                         v-if="index != indexPage && question.answer != 0"
                         class="btn btn-success w-100">
                         <small>{{ question.navigation_order }}</small>
@@ -350,7 +350,7 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button @click="endExam" type="button" class="btn btn-primary">Ya</button>
+          <button @click="endExam('end')" type="button" class="btn btn-primary">Ya</button>
         </div>
       </div>
     </div>
@@ -421,6 +421,7 @@ export default {
 
   setup(props) {
     var indexPage = ref(props.indexPage);
+    var valueCategoryIndex = ref("TWK"); // default category index / kategori soal
     let options = ["A", "B", "C", "D", "E"];
 
     const counter = ref(0);
@@ -447,8 +448,9 @@ export default {
       indexPage.value = indexPage.value + 1;
     };
 
-    const clickQuestion = (index) => {
+    const clickQuestion = (index, categoryIndex) => {
       indexPage.value = index;
+      valueCategoryIndex.value = categoryIndex;
     };
 
     const confirm = () => {
@@ -649,6 +651,7 @@ export default {
       prevPage,
       nextPage,
       clickQuestion,
+      valueCategoryIndex,
       confirm,
       submitAnswer,
       endedAudio,

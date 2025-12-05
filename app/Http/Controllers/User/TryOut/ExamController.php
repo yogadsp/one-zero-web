@@ -295,6 +295,8 @@ class ExamController extends Controller
         
         // dd($questionLists);
 
+        // dd($questionListAll);
+
 
         $totalQuetions = count($questionLists);
 

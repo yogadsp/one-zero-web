@@ -235,25 +235,25 @@
               </div>
             </div>
             <div class="card-body" style="height: 450px; overflow-y: auto">
-              <div v-for="(valueCategories, valueCategoryIndex) in questionListAll" :key="valueCategoryIndex" style="margin-bottom: 25px;">
-                <h5 class="mb-3">{{ valueCategoryIndex }}</h5>
+              <div v-for="(valueCategories, categoryIndex) in questionListAll" :key="categoryIndex" style="margin-bottom: 25px;">
+                <h5 class="mb-3">{{ categoryIndex }}</h5>
                 <div style="display: flex; flex-wrap: wrap; gap: 6px;">
                 <div v-for="(question, index) in valueCategories" :key="index">
                     <div style="padding: 3px">
                       <button 
-                        @click="clickQuestion(index, valueCategoryIndex)" 
-                        v-if="index == indexPage"
-                        class="btn btn-primary w-100">
+                        @click="clickQuestion(index, categoryIndex)" 
+                        class="btn w-100"
+                        :class="getButtonNavigationClass(index, categoryIndex, question)">
                         <small>{{ question.navigation_order }}</small>
                       </button>
                       <button
-                        @click="clickQuestion(index, valueCategoryIndex)"
+                        @click="clickQuestion(index, categoryIndex)"
                         v-if="index != indexPage && question.answer == 0"
                         class="btn btn-outline-primary w-100">
                         <small>{{ question.navigation_order }}</small>
                       </button>
                       <button
-                        @click="clickQuestion(index, valueCategoryIndex)"
+                        @click="clickQuestion(index, categoryIndex)"
                         v-if="index != indexPage && question.answer != 0"
                         class="btn btn-success w-100">
                         <small>{{ question.navigation_order }}</small>
@@ -265,26 +265,6 @@
             </div>
             <div class="card-footer">
               <div class="btn-group" role="group">
-                <button
-                  v-if="section > 1"
-                  @click="endExam('previous')"
-                  class="btn btn-danger btn-md border-0 shadow w-100"
-                  :disabled="isLoadingNextSection">
-                  <div v-if="isLoadingNextSection" class="spinner-border spinner-border-sm" role="status">
-                    <span class="sr-only"></span>
-                  </div>
-                  <span v-else>Previous Section</span>
-                </button>
-                <button
-                  v-if="section < lastSection"
-                  @click="endExam('next')"
-                  class="btn btn-danger btn-md border-0 shadow w-100"
-                  :disabled="isLoadingNextSection">
-                  <div v-if="isLoadingNextSection" class="spinner-border spinner-border-sm" role="status">
-                    <span class="sr-only"></span>
-                  </div>
-                  <span v-else>Next Section</span>
-                </button>
                 <button
                   @click="showModalEndExam = true"
                   class="btn btn-danger btn-md border-0 shadow w-100">
@@ -509,12 +489,12 @@ export default {
           number: indexPage.value,
         })
         .then(function (response) {
-          props.questionLists[indexPage.value]["answer"] = answer;
-          if (props.exam.next_question_automatically == 1) {
-            if (indexPage.value < Object.keys(props.questionLists).length - 1) {
-              nextPage();
-            }
-          }
+          props.questionListAll[valueCategoryIndex.value][indexPage.value]["answer"] = answer;
+          // if (props.exam.next_question_automatically == 1) {
+          //   if (indexPage.value < Object.keys(props.questionLists).length - 1) {
+          //     nextPage();
+          //   }
+          // }
         })
         .catch(function (error) {
           console.log(error);
@@ -672,6 +652,26 @@ export default {
       });
 
       return props;
+    },
+    getButtonNavigationClass(index, categoryIndex, question) {
+      // Kondisi 1 — tombol aktif
+      if (index == this.indexPage && categoryIndex == this.valueCategoryIndex) {
+        // jika belum dijawab
+        if (question.answer == 0) {
+          return 'btn-primary';
+        // jika sudah dijawab
+        } else {
+          return 'btn-success';
+        }
+      }
+
+      // Kondisi 2 — belum dijawab
+      if (question.answer == 0) {
+        return 'btn-outline-primary';
+      }
+
+      // Kondisi 3 — sudah dijawab
+      return 'btn-success';
     },
   },
 };

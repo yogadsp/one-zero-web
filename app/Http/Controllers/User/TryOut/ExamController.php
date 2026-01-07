@@ -86,7 +86,11 @@ class ExamController extends Controller
 
         $exam = $this->examService->find($id);
 
-        $transactions = Transaction::where(['user_id' => Auth::user()->id,'voucher_used' => 1, 'exam_id' => $exam->id])->get();
+        // transaksi dengan voucher yang digunakan
+        // $transactions = Transaction::where(['user_id' => Auth::user()->id,'voucher_used' => 1, 'exam_id' => $exam->id])->get();
+
+        // Transaksi telah diselesaikan dan statusnya 'done'
+        $transactions = Transaction::where(['user_id' => Auth::user()->id,'transaction_status' => 'done', 'exam_id' => $exam->id])->get();
 
         if(count($transactions) == 0 && $exam->price > 0) {
             return redirect()->back()->with('error', 'Anda tidak memiliki akses ke try out dengan judul <b>'.strtoupper(strtolower($exam->title)).'</b>, silakan lakukan pembelian terlebih dahulu.');

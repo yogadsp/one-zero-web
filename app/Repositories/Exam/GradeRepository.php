@@ -90,7 +90,8 @@ class GradeRepository extends BaseRepository implements GradeInterface
             'grade',
             'is_finished',
             'total_tolerance',
-            'is_blocked'
+            'is_blocked',
+            'answers'
         )->with([
             'category',
             'exam',
@@ -103,6 +104,12 @@ class GradeRepository extends BaseRepository implements GradeInterface
 
     public function getRankingByExam($examId, $limit = 10)
     {
+        // get min end_time per user_id for the exam_id
+        $minEndTimeIds = @$this->model->selectRaw('id')
+            ->from('grades')
+            ->where(['exam_id' => $examId, 'is_finished' => 1])
+            ->groupBy('user_id')->get()->toArray();
+        
         $grades = $this->model
             ->select(
                 'id',
@@ -123,7 +130,7 @@ class GradeRepository extends BaseRepository implements GradeInterface
                 'is_finished',
                 'total_tolerance',
                 'is_blocked'
-            )->where(['exam_id' => $examId, 'is_finished' => 1])->with(['user.student', 'user.student.province', 'user.student.city',])->orderBy('grade_old', 'DESC')->paginate($limit);
+            )->whereIn('id', $minEndTimeIds)->with(['user.student', 'user.student.province', 'user.student.city',])->orderBy('grade_old', 'DESC')->paginate($limit);
         return $grades;
     }
 }

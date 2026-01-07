@@ -246,18 +246,6 @@
                         :class="getButtonNavigationClass(index, categoryIndex, question)">
                         <small>{{ question.navigation_order }}</small>
                       </button>
-                      <button
-                        @click="clickQuestion(index, categoryIndex)"
-                        v-if="index != indexPage && question.answer == 0"
-                        class="btn btn-outline-primary w-100">
-                        <small>{{ question.navigation_order }}</small>
-                      </button>
-                      <button
-                        @click="clickQuestion(index, categoryIndex)"
-                        v-if="index != indexPage && question.answer != 0"
-                        class="btn btn-success w-100">
-                        <small>{{ question.navigation_order }}</small>
-                      </button>
                     </div>
                   </div>
                 </div>

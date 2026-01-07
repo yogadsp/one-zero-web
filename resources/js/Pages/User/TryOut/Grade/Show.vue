@@ -92,25 +92,19 @@
                 <tr>
                   <th>No</th>
                   <th>Kategori Penilaian</th>
-                  <th>Total Benar</th>
-                  <th>Total Salah</th>
-                  <th>Nilai Konversi</th>
+                  <th>Nilai</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-if="grade.grade_detail.length" v-for="(gradeDetail, index) in grade.grade_detail" :key="index">
                   <td>{{ ++index }}</td>
                   <td>{{ gradeDetail.value_category.name }}</td>
-                  <td>{{ gradeDetail.total_correct }}</td>
-                  <td>{{ gradeDetail.total_wrong }}</td>
                   <td>{{ gradeDetail.grade }}</td>
                 </tr>
                 <tr>
                   <td>&nbsp;</td>
-                  <td>Total</td>
-                  <td></td>
-                  <td></td>
-                  <td>{{ grade.grade }}</td>
+                  <th>Total</th>
+                  <th>{{ grade.grade }}</th>
                 </tr>
               </tbody>
             </table>
@@ -122,11 +116,12 @@
         <div class="card-header bg-primary mb-3">
           <div class="d-flex justify-content-between">
             <div class="text-start">
-              <h5 class="mb-0 text-white">Ranking di Ujian ini</h5>
+              <h5 class="mb-0 text-white">Ranking di Tryout ini</h5>
             </div>
           </div>
         </div>
         <div class="card-body">
+          <p><i>Nilai yang ditampilkan merupakan hasil dari percobaan pertama</i></p>
           <div class="table-responsive">
             <table class="table mb-0">
               <thead>

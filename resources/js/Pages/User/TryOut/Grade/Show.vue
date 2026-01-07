@@ -161,6 +161,7 @@
           </div>
         </div>
         <div class="card-body">
+          <Link :href="`/user/grades/show-answer/${grade.exam_id}/${grade.id}`" class="btn btn-primary btn-sm">Lihat Jawaban</Link>
           <table class="table mb-0">
             <tbody>
               <tr v-for="(answer, index) in answers" :key="index" v-if="grade.grade >= grade.exam.question_title.minimum_grade">

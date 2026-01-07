@@ -113,6 +113,7 @@ Route::group(['middleware' => ['auth', 'accountIsActive']], function () {
             // grade
             Route::resource('grades', 'GradeController')->only(['index', 'show']);
             Route::get('grades/{id}/certificate', 'GradeController@certificate');
+            Route::get('grades/show-answer/{examId}/{gradeId}', 'GradeController@showAnswer');
         });
 
         Route::group(['namespace' => 'Transaction'], function () {

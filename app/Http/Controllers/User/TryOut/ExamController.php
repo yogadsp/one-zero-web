@@ -213,6 +213,7 @@ class ExamController extends Controller
                             'option_3_point' => empty($question->option_3_point) ? null : $question->option_3_point,
                             'option_4_point' => empty($question->option_4_point) ? null : $question->option_4_point,
                             'option_5_point' => empty($question->option_5_point) ? null : $question->option_5_point,
+                            'discussion' => $question->discussion, // pembahasan jawaban
                         ];
                     }
     
@@ -286,9 +287,11 @@ class ExamController extends Controller
         });
 
         $questionListAll = [];
+        $questionCount = 0;
 
         foreach($gradeAnswers as $gradeAnswer) {
             $questionListAll[$gradeAnswer['value_category_name']][] = $gradeAnswer;
+            $questionCount++;
         }
 
         $questionLists = array_filter($gradeAnswers, function ($var) use($section) {
@@ -309,6 +312,7 @@ class ExamController extends Controller
             'grade' => $grade,
             'questionLists' => $questionLists,
             'questionListAll' => $questionListAll,
+            'questionCount' => $questionCount,
             'duration' => $duration,
             'section' => (int) $grade->section,
             'indexPage' => (int) $grade->number,

@@ -105,9 +105,11 @@ class GradeController extends Controller
         });
 
         $questionListAll = [];
+        $questionCount = 0;
 
         foreach($gradeAnswers as $gradeAnswer) {
             $questionListAll[$gradeAnswer['value_category_name']][] = $gradeAnswer;
+            $questionCount++;
         }
 
         $section = 1;
@@ -130,6 +132,7 @@ class GradeController extends Controller
             'grade' => $grade,
             'questionLists' => $questionLists,
             'questionListAll' => $questionListAll,
+            'questionCount' => $questionCount,
             // 'duration' => $duration,
             'section' => (int) $grade->section,
             'indexPage' => (int) $grade->number,

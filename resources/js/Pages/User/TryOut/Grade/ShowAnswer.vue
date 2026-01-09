@@ -21,7 +21,7 @@
                   <div v-if="exam.show_question_number == 1">
                     <h4 class="mb-0 text-white">
                       <span class="badge bg-danger" v-if="questionLists[indexPage]['type'] == 1"
-                        >Question {{ questionLists[indexPage]["navigation_order"] }}</span
+                        >Pertanyaan {{ indexPageGlobal }}</span
                       >
                     </h4>
                     <h4 class="mb-0 text-white">
@@ -30,18 +30,6 @@
                   </div>
                 </div>
                 <div class="text-end">
-                  <VueCountdown
-                    :transform="transform"
-                    :time="duration"
-                    @progress="handleChangeDuration"
-                    @end="showModalEndTimeExam = true"
-                    v-slot="{ hours, minutes, seconds }">
-                    <h4 class="mb-0 text-white">
-                      <span class="badge bg-danger">{{ hours }}</span> :
-                      <span class="badge bg-danger">{{ minutes }}</span> :
-                      <span class="badge bg-danger">{{ seconds }}</span>
-                    </h4>
-                  </VueCountdown>
                 </div>
               </div>
             </div>
@@ -204,7 +192,7 @@
                       Prev
                     </button>
                     <button
-                      v-if="indexPage < questionLists.length - 1"
+                      v-if="indexPageGlobal < questionCount - 1"
                       @click="nextPage"
                       type="button"
                       class="btn btn-success"
@@ -230,21 +218,21 @@
             <div class="card-header text-white bg-primary mb-3">
               <div class="d-flex justify-content-between">
                 <div>
-                  <h5 class="mb-0 text-white">Navigation</h5>
+                  <h5 class="mb-0 text-white">Nomor</h5>
                 </div>
               </div>
             </div>
             <div class="card-body" style="height: 450px; overflow-y: auto">
-              <div v-for="(valueCategories, categoryIndex) in questionListAll" :key="categoryIndex" style="margin-bottom: 25px;">
+              <div v-for="(valueCategories, categoryIndex) in questionListAllWithOrder" :key="categoryIndex" style="margin-bottom: 25px;">
                 <h5 class="mb-3">{{ categoryIndex }}</h5>
                 <div style="display: flex; flex-wrap: wrap; gap: 6px;">
                 <div v-for="(question, index) in valueCategories" :key="index">
                     <div style="padding: 3px">
                       <button 
-                        @click="clickQuestion(index, categoryIndex)" 
+                        @click="clickQuestion(index, categoryIndex, question.global_order)" 
                         class="btn w-100"
                         :class="getButtonNavigationClass(index, categoryIndex, question)">
-                        <small>{{ question.navigation_order }}</small>
+                        <small>{{ question.global_order }}</small>
                       </button>
                     </div>
                   </div>
@@ -315,6 +303,8 @@ export default {
     lastSection: Number,
     grade: Object,
     indexPage: Object,
+    indexPageGlobal: Number,
+    questionCount: Number,
   },
   mounted() {
     let recaptchaScript = document.createElement("script");
@@ -333,6 +323,7 @@ export default {
 
   setup(props) {
     var indexPage = ref(props.indexPage);
+    var indexPageGlobal = ref(1);
     var valueCategoryIndex = ref("TWK"); // default category index / kategori soal
     let options = ["A", "B", "C", "D", "E"];
 
@@ -360,9 +351,10 @@ export default {
       indexPage.value = indexPage.value + 1;
     };
 
-    const clickQuestion = (index, categoryIndex) => {
+    const clickQuestion = (index, categoryIndex, indexGlobal) => {
       indexPage.value = index;
       valueCategoryIndex.value = categoryIndex;
+      indexPageGlobal.value = indexGlobal;
     };
 
     const removePause = () => {
@@ -516,6 +508,7 @@ export default {
 
     return {
       indexPage,
+      indexPageGlobal,
       options,
       removePause,
       playAudio,
@@ -567,6 +560,22 @@ export default {
       // Kondisi 3 — sudah dijawab
       return 'btn-success';
     },
+  },
+  computed: {
+    // menggabungkan nomor urut soal pada semua section
+    questionListAllWithOrder() {
+      let counter = 1
+      const result = {}
+
+      Object.keys(this.questionListAll).forEach(category => {
+        result[category] = this.questionListAll[category].map(q => ({
+          ...q,
+          global_order: counter++
+        }))
+      })
+
+      return result
+    }
   },
 };
 </script>

@@ -20,6 +20,9 @@
             </div>
             <!--end breadcrumb-->
 
+            <div v-if="$page.props.session.success" class="alert alert-success border-0">{{ $page.props.session.success }}</div>
+            <div v-if="$page.props.session.failed" class="alert alert-danger border-0">{{ $page.props.session.failed }}</div>
+
             <div class="card">
                 <div class="card-body">
                     <div class="d-lg-flex align-items-center">
@@ -90,12 +93,12 @@
                                     <tr>
                                         <td>Kategori Peminatan</td>
                                         <td>:</td>
-                                        <td><span class="badge bg-primary">{{ transaction.exam.category.name }}</span></td>
+                                        <td><span class="badge bg-primary">{{ transaction.product_category_name }}</span></td>
                                     </tr>
                                     <tr>
-                                        <td>Judul Ujian</td>
+                                        <td>Produk</td>
                                         <td>:</td>
-                                        <td>{{ transaction.exam.title }}</td>
+                                        <td>{{ transaction.product_title }}</td>
                                     </tr>
                                     <tr>
                                         <td>Total Pembayaran</td>

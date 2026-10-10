@@ -218,8 +218,8 @@
                                 <tr v-for="(transaction, index) in transactions.data" :key="index">
                                     <td>{{ ++index + (transactions.current_page - 1) * transactions.per_page }}</td>
                                     <td>{{ transaction.code }}</td>
-                                    <td>{{ transaction.exam.category.name }}</td>
-                                    <td>{{ transaction.exam.title }}</td>
+                                    <td>{{ transaction.product_category_name }}</td>
+                                    <td>{{ transaction.product_title }}</td>
                                     <td>{{ transaction.user.name }}</td>
                                     <td>{{ transaction.maximum_payment_time }}</td>
                                     <td>{{ formatPrice(transaction.total_purchases) }}</td>

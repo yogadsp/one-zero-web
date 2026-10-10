@@ -3,14 +3,18 @@
 namespace App\Http\Controllers\Admin\Lesson;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Http\Requests\Lesson\QuestionTitleRequest;
+use App\Models\Lesson\ValueCategory;
 use App\Services\Contracts\Lesson\QuestionTitleInterface as QuestionTitleService;
 use App\Services\Contracts\MasterData\CategoryInterface as CategoryService;
-use App\Http\Requests\Lesson\QuestionTitleRequest;
+use App\Services\Exam\ExamProgramProfileService;
+use Illuminate\Http\Request;
 
 class QuestionTitleController extends Controller
 {
-    protected $questionTitleService, $categoryService;
+    protected $questionTitleService;
+
+    protected $categoryService;
 
     public function __construct(QuestionTitleService $questionTitleService, CategoryService $categoryService)
     {
@@ -26,7 +30,7 @@ class QuestionTitleController extends Controller
     public function index(Request $request)
     {
         return inertia('Admin/Lesson/QuestionTitle/Index', [
-            'questionTitles' => $this->questionTitleService->getAllPaginatedWithParams($request)
+            'questionTitles' => $this->questionTitleService->getAllPaginatedWithParams($request),
         ]);
     }
 
@@ -35,10 +39,14 @@ class QuestionTitleController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function create()
+    public function create(ExamProgramProfileService $profileService)
     {
+        $categories = $this->categoryService->all();
+
         return inertia('Admin/Lesson/QuestionTitle/Create', [
-            'categories' => $this->categoryService->all()
+            'categories' => $categories,
+            'programProfiles' => $profileService->profilesFor($categories),
+            'sectionCounts' => ValueCategory::query()->selectRaw('category_id, COUNT(*) as total')->groupBy('category_id')->pluck('total', 'category_id'),
         ]);
     }
 
@@ -51,17 +59,17 @@ class QuestionTitleController extends Controller
     public function store(QuestionTitleRequest $request)
     {
         try {
-            #store
+            //store
             $this->questionTitleService->create($request);
 
-            #Bump....
+            //Bump....
             return redirect()->route('admin.question-titles.index');
 
-        } catch(\Exception $e) {
-            #get message
-            session()->flash('failed', $e->getMessage() . ' in file :'.$e->getFile() .' line: '. $e->getLine());
+        } catch (\Exception $e) {
+            //get message
+            session()->flash('failed', $e->getMessage().' in file :'.$e->getFile().' line: '.$e->getLine());
 
-            #redirect
+            //redirect
             return redirect()->back()->withInput($request->all());
         }
     }
@@ -72,13 +80,19 @@ class QuestionTitleController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function edit($id)
+    public function edit($id, ExamProgramProfileService $profileService)
     {
-        if(!$this->questionTitleService->find($id)) return abort('404', 'uppss....');
+        if (! $this->questionTitleService->find($id)) {
+            return abort('404', 'uppss....');
+        }
+
+        $categories = $this->categoryService->all();
 
         return inertia('Admin/Lesson/QuestionTitle/Edit', [
             'questionTitle' => $this->questionTitleService->find($id),
-            'categories' => $this->categoryService->all()
+            'categories' => $categories,
+            'programProfiles' => $profileService->profilesFor($categories),
+            'sectionCounts' => ValueCategory::query()->selectRaw('category_id, COUNT(*) as total')->groupBy('category_id')->pluck('total', 'category_id'),
         ]);
     }
 
@@ -92,19 +106,21 @@ class QuestionTitleController extends Controller
     public function update(QuestionTitleRequest $request, $id)
     {
         try {
-            if(!$this->questionTitleService->find($id)) return abort('404', 'uppss....');
+            if (! $this->questionTitleService->find($id)) {
+                return abort('404', 'uppss....');
+            }
 
-            #update
+            //update
             $this->questionTitleService->update($request, $id);
 
-            #Bump....
+            //Bump....
             return redirect()->route('admin.question-titles.index');
 
-        } catch(\Exception $e) {
-            #get message
-            session()->flash('failed', $e->getMessage() . ' in file :'.$e->getFile() .' line: '. $e->getLine());
+        } catch (\Exception $e) {
+            //get message
+            session()->flash('failed', $e->getMessage().' in file :'.$e->getFile().' line: '.$e->getLine());
 
-            #redirect
+            //redirect
             return redirect()->back()->withInput($request->all());
         }
     }
@@ -118,17 +134,17 @@ class QuestionTitleController extends Controller
     public function destroy($id)
     {
         try {
-            #delete
+            //delete
             $this->questionTitleService->delete($id);
 
-            #Bump....
+            //Bump....
             return redirect()->route('admin.question-titles.index');
 
-        } catch(\Exception $e) {
-            #get message
-            session()->flash('failed', $e->getMessage() . ' in file :'.$e->getFile() .' line: '. $e->getLine());
+        } catch (\Exception $e) {
+            //get message
+            session()->flash('failed', $e->getMessage().' in file :'.$e->getFile().' line: '.$e->getLine());
 
-            #redirect
+            //redirect
             return redirect()->back()->withInput($request->all());
         }
     }

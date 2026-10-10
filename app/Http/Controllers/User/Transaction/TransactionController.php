@@ -3,20 +3,23 @@
 namespace App\Http\Controllers\User\Transaction;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Services\Contracts\Transaction\TransactionInterface as TransactionService;
+use App\Models\Learning\LearningMaterial;
 use App\Services\Contracts\Transaction\BankInterface as BankService;
-use App\Services\Contracts\Exam\ExamInterface as ExamService;
+use App\Services\Contracts\Transaction\TransactionInterface as TransactionService;
+use App\Services\Learning\LearningCatalogService;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class TransactionController extends Controller
 {
-    protected $transactionService, $bankService, $examService;
+    protected $transactionService;
 
-    public function __construct(TransactionService $transactionService, BankService $bankService, ExamService $examService)
+    protected $bankService;
+
+    public function __construct(TransactionService $transactionService, BankService $bankService)
     {
         $this->transactionService = $transactionService;
         $this->bankService = $bankService;
-        $this->examService = $examService;
     }
 
     /**
@@ -32,7 +35,7 @@ class TransactionController extends Controller
     public function index(Request $request)
     {
         return inertia('User/Transaction/Transaction/Index', [
-            'transactions' => $this->transactionService->getAllPaginatedWithParamsByUser($request)
+            'transactions' => $this->transactionService->getAllPaginatedWithParamsByUser($request),
         ]);
     }
 
@@ -44,31 +47,69 @@ class TransactionController extends Controller
      */
     public function show($id)
     {
-        if(!$this->transactionService->find($id)) return abort('404', 'uppss....');
+        $transaction = $this->transactionService->findForUser($id, request()->user()->id);
+        abort_unless($transaction, 404);
 
         return inertia('User/Transaction/Transaction/Show', [
-            'transaction' => $this->transactionService->find($id),
-            'banks' => $this->bankService->all()
+            'transaction' => $transaction,
+            'banks' => $this->bankService->all(),
         ]);
     }
 
     public function buy(Request $request, $id)
     {
+        return $this->purchase($request, LearningCatalogService::TYPE_TRYOUT, $id);
+    }
+
+    public function buyLearningMaterial(Request $request, $id)
+    {
+        $material = LearningMaterial::query()->find($id);
+        abort_unless($material, 404);
+
+        return $this->purchase($request, $material->type, $id);
+    }
+
+    public function destroy(Request $request, $id)
+    {
         try {
-            $exam = $this->examService->find($id);
+            $this->transactionService->deleteForUser($id, $request->user());
+            $request->session()->flash('success', 'Transaksi berhasil dibatalkan. Anda dapat melakukan pembelian ulang.');
 
-            if(!$exam) return abort('404', 'uppss....');
+            return $request->header('X-Inertia')
+                ? Inertia::location(route('user.transactions.index'))
+                : redirect()->route('user.transactions.index');
+        } catch (\DomainException $exception) {
+            $request->session()->flash('error', $exception->getMessage());
 
-            if($this->transactionService->checkTransactionPendingByUser()) {
-                return redirect()->route('user.categories.exams.index', $exam->category_id)->with('error', 'Anda memiliki transaksi yang terpending, silakan selesaikan terlebih dahulu transaksi tersebut atau silakan hubungi admin');
-            }
+            return $request->header('X-Inertia')
+                ? Inertia::location(url()->previous())
+                : redirect()->back();
+        }
+    }
 
-            $transaction = $this->transactionService->createTransacationWithExamId($id);
+    private function purchase(Request $request, string $productType, string $productId)
+    {
+        try {
+            $transaction = $this->transactionService->purchase($request->user(), $productType, $productId);
+            $location = route('user.transactions.show', $transaction->id);
 
-            return redirect()->route('user.transactions.show', $transaction->id);
+            return $request->header('X-Inertia')
+                ? Inertia::location($location)
+                : redirect($location);
 
+        } catch (\DomainException $exception) {
+            $request->session()->flash('error', $exception->getMessage());
+
+            return $request->header('X-Inertia')
+                ? Inertia::location(url()->previous())
+                : redirect()->back();
         } catch (\Throwable $e) {
-            return redirect()->back()->with('error', 'Terjadi kesalahan. '.$e->getMessage().' - file: '. $e->getFile(). ' -line '. $e->getLine());
+            report($e);
+            $request->session()->flash('error', 'Transaksi belum dapat dibuat. Silakan coba kembali atau hubungi admin.');
+
+            return $request->header('X-Inertia')
+                ? Inertia::location(url()->previous())
+                : redirect()->back();
         }
     }
 }

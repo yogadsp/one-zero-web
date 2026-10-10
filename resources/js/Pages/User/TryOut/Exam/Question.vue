@@ -1,7 +1,6 @@
 <template>
   <Head>
     <title>{{ appName }} - Ujian</title>
-    style
   </Head>
   <!--start page wrapper -->
   <div class="fullscreen-wrapper">
@@ -10,7 +9,7 @@
         <div
           class="col-md-12 col-sm-12 col-xs-12"
           :class="
-            exam.show_question_number_navigation == 1 && questionLists[indexPage]['type'] == 1
+            exam.show_question_number_navigation == 1 && currentQuestion && currentQuestion.type == 1
               ? 'col-lg-8'
               : 'col-lg-12'
           ">
@@ -20,12 +19,12 @@
                 <div class="text-start">
                   <div v-if="exam.show_question_number == 1">
                     <h4 class="mb-0 text-white">
-                      <span class="badge bg-danger" v-if="questionLists[indexPage]['type'] == 1"
-                        >Question {{ questionLists[indexPage]["navigation_order"] }}</span
+                      <span class="badge bg-danger" v-if="currentQuestion && currentQuestion.type == 1"
+                        >Question {{ currentQuestion.navigation_order }}</span
                       >
                     </h4>
                     <h4 class="mb-0 text-white">
-                      <span class="badge bg-danger" v-if="questionLists[indexPage]['type'] == 2">Directions</span>
+                      <span class="badge bg-danger" v-if="currentQuestion && currentQuestion.type == 2">Directions</span>
                     </h4>
                   </div>
                 </div>
@@ -46,8 +45,8 @@
               </div>
             </div>
             <div class="card-body">
-              <div v-if="questionLists[indexPage]">
-                <div v-if="questionLists[indexPage]['type'] == 1">
+              <div v-if="currentQuestion">
+                <div v-if="currentQuestion.type == 1">
                   <div v-if="questionLists[indexPage]['audio_input'] == 1">
                     <div style="min-height: 75px" class="text-center">
                       <h2>{{}}</h2>
@@ -125,22 +124,22 @@
                   </div>
 
                   <div>
-                    <div v-html="questionListAll[valueCategoryIndex][indexPage]['question']" class="prevent-select"></div>
+                    <div v-html="currentQuestion.question" class="prevent-select"></div>
                   </div>
                   <table>
                     <tbody v-if="exam.type_option == 1">
-                      <tr v-for="(answer, index) in questionListAll[valueCategoryIndex][indexPage]['answer_order'].split(',')" :key="index">
+                      <tr v-for="(answer, index) in currentQuestion.answer_order.split(',')" :key="index">
                         <span>
                           <td width="50" style="padding: 10px">
                             <button
-                              v-if="answer == questionListAll[valueCategoryIndex][indexPage]['answer']"
-                              @click="submitAnswer(questionListAll[valueCategoryIndex][indexPage]['question_id'], answer)"
+                              v-if="answer == currentQuestion.answer"
+                              @click="submitAnswer(currentQuestion.question_id, answer)"
                               class="btn btn-success text-white">
                               {{ options[index] }}
                             </button>
                             <button
                               v-else
-                              @click="submitAnswer(questionListAll[valueCategoryIndex][indexPage]['question_id'], answer)"
+                              @click="submitAnswer(currentQuestion.question_id, answer)"
                               class="btn btn-outline-primary w-100">
                               {{ options[index] }}
                             </button>
@@ -149,7 +148,7 @@
                             <p
                               class="prevent-select"
                               v-if="exam.show_answer == 1"
-                              v-html="questionListAll[valueCategoryIndex][indexPage]['option_' + answer]"></p>
+                              v-html="currentQuestion['option_' + answer]"></p>
                           </td>
                         </span>
                       </tr>
@@ -174,14 +173,14 @@
                       <button v-if="answer == questionLists[indexPage]['answer']" class="btn btn-success ms-3">
                         {{ options[index] }}
                       </button>
-                      <button v-else @click="submitAnswer(page, answer)" class="btn btn-outline-primary ms-3">
+                      <button v-else @click="submitAnswer(currentQuestion.question_id, answer)" class="btn btn-outline-primary ms-3">
                         {{ options[index] }}
                       </button>
                     </span>
                   </div>
                 </div>
-                <div v-if="questionLists[indexPage]['type'] == 2">
-                  <div v-html="questionLists[indexPage]['direction']" class="prevent-select"></div>
+                <div v-if="currentQuestion.type == 2">
+                  <div v-html="currentQuestion.direction" class="prevent-select"></div>
                 </div>
               </div>
 
@@ -196,7 +195,7 @@
                 <div class="text-start">
                   <div v-if="exam.show_prev_next_button == 1">
                     <button
-                      v-if="indexPage > 0 && questionLists[indexPage]['type'] == 1"
+                      v-if="indexPage > 0 && currentQuestion && currentQuestion.type == 1"
                       @click="prevPage()"
                       type="button"
                       class="btn btn-primary me-3"
@@ -213,6 +212,14 @@
                         <span class="sr-only"></span>
                       </div>
                       <span v-else>Next</span>
+                    </button>
+                    <button
+                      v-else-if="section < lastSection"
+                      @click="endExam('next')"
+                      type="button"
+                      class="btn btn-success"
+                      :disabled="isLoadingNextSection">
+                      Lanjut Bagian
                     </button>
                   </div>
                 </div>
@@ -235,15 +242,15 @@
               </div>
             </div>
             <div class="card-body" style="height: 450px; overflow-y: auto">
-              <div v-for="(valueCategories, categoryIndex) in questionListAll" :key="categoryIndex" style="margin-bottom: 25px;">
-                <h5 class="mb-3">{{ categoryIndex }}</h5>
+              <div style="margin-bottom: 25px;">
+                <h5 class="mb-3">{{ currentSectionName }}</h5>
                 <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-                <div v-for="(question, index) in valueCategories" :key="index">
+                <div v-for="(question, index) in questionLists" :key="question.question_id">
                     <div style="padding: 3px">
                       <button 
-                        @click="clickQuestion(index, categoryIndex)" 
+                        @click="clickQuestion(index)"
                         class="btn w-100"
-                        :class="getButtonNavigationClass(index, categoryIndex, question)">
+                        :class="getButtonNavigationClass(index, question)">
                         <small>{{ question.navigation_order }}</small>
                       </button>
                     </div>
@@ -309,7 +316,7 @@
           <h5 class="modal-title">Waktu Habis !</h5>
         </div>
         <div class="modal-body">
-          <div v-if="section == lastSection">
+          <div v-if="exam.duration_type == 1 || section == lastSection">
             Waktu ujian sudah berakhir!. Klik <strong class="fw-bold">Ya</strong> untuk mengakhiri ujian.
           </div>
           <div v-else>
@@ -318,7 +325,12 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button @click="endExam('end')" type="button" class="btn btn-primary">Ya</button>
+          <button
+            @click="endExam(exam.duration_type == 1 || section == lastSection ? 'end' : 'next')"
+            type="button"
+            class="btn btn-primary">
+            Ya
+          </button>
         </div>
       </div>
     </div>
@@ -336,7 +348,7 @@ import MathJax, { initMathJax, renderByMathjax } from "mathjax-vue3";
 import { Head, Link } from "@inertiajs/inertia-vue3";
 
 //import ref
-import { ref } from "vue";
+import { computed, onBeforeUnmount, ref } from "vue";
 
 //import VueCountdown
 import VueCountdown from "@chenfengyuan/vue-countdown";
@@ -364,33 +376,32 @@ export default {
     id: String,
     page: Number,
     exam: Object,
-    duration: Object,
-    questionLists: Object,
+    duration: [Number, String],
+    questionLists: Array,
     questionListAll: Object,
     section: Number,
     lastSection: Number,
     grade: Object,
-    indexPage: Object,
+    indexPage: Number,
   },
   mounted() {
-    let recaptchaScript = document.createElement("script");
-    recaptchaScript.setAttribute(
-      "src",
-      "https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
-    );
-    document.head.appendChild(recaptchaScript);
-
     function onMathJaxReady() {
-      const el = document.getElementById("elementId");
-      renderByMathjax(el);
+      renderByMathjax(document.querySelector(".fullscreen-wrapper"));
     }
-    initMathJax({}, onMathJaxReady);
+    initMathJax(
+      {
+        url: "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js",
+        loadType: "defer",
+      },
+      onMathJaxReady
+    );
   },
 
   setup(props) {
-    var indexPage = ref(props.indexPage);
-    var valueCategoryIndex = ref("TWK"); // default category index / kategori soal
+    var indexPage = ref(Math.min(Math.max(props.indexPage || 0, 0), Math.max(props.questionLists.length - 1, 0)));
     let options = ["A", "B", "C", "D", "E"];
+    const currentQuestion = computed(() => props.questionLists[indexPage.value] || null);
+    const currentSectionName = computed(() => currentQuestion.value?.value_category_name || `Bagian ${props.section}`);
 
     const counter = ref(0);
     const counterListening = ref(0);
@@ -416,13 +427,19 @@ export default {
       indexPage.value = indexPage.value + 1;
     };
 
-    const clickQuestion = (index, categoryIndex) => {
+    const clickQuestion = (index) => {
       indexPage.value = index;
-      valueCategoryIndex.value = categoryIndex;
     };
 
+    const isWarningOpen = ref(false);
+
     const confirm = () => {
+      if (isWarningOpen.value) {
+        return;
+      }
+
       if (props.grade.is_blocked != 1) {
+        isWarningOpen.value = true;
         let total_tolerance = parseInt(props.grade.total_tolerance) > 0 ? parseInt(props.grade.total_tolerance) - 1 : 0;
         let tolerance =
           total_tolerance == 0 ? "Tolerasi habis, " : "Toleransi Tersisa " + total_tolerance + " kali lagi, ";
@@ -452,7 +469,15 @@ export default {
               }
             );
           }
+        }).finally(() => {
+          isWarningOpen.value = false;
         });
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        confirm();
       }
     };
 
@@ -477,7 +502,7 @@ export default {
           number: indexPage.value,
         })
         .then(function (response) {
-          props.questionListAll[valueCategoryIndex.value][indexPage.value]["answer"] = answer;
+          props.questionLists[indexPage.value]["answer"] = answer;
           // if (props.exam.next_question_automatically == 1) {
           //   if (indexPage.value < Object.keys(props.questionLists).length - 1) {
           //     nextPage();
@@ -605,7 +630,8 @@ export default {
       }
     };
 
-    window.addEventListener("blur", confirm);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    onBeforeUnmount(() => document.removeEventListener("visibilitychange", handleVisibilityChange));
 
     return {
       indexPage,
@@ -619,7 +645,8 @@ export default {
       prevPage,
       nextPage,
       clickQuestion,
-      valueCategoryIndex,
+      currentQuestion,
+      currentSectionName,
       confirm,
       submitAnswer,
       endedAudio,
@@ -641,9 +668,9 @@ export default {
 
       return props;
     },
-    getButtonNavigationClass(index, categoryIndex, question) {
+    getButtonNavigationClass(index, question) {
       // Kondisi 1 — tombol aktif
-      if (index == this.indexPage && categoryIndex == this.valueCategoryIndex) {
+      if (index == this.indexPage) {
         // jika belum dijawab
         if (question.answer == 0) {
           return 'btn-primary';

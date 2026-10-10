@@ -30,7 +30,7 @@
                     <form @submit.prevent="submit" class="row g-3">
                         <div class="col-12">
                             <label class="form-label">Kategori</label>
-                            <select v-model="form.category_id" :class="{ 'is-invalid': errors.category_id }" class="form-select">
+                            <select v-model="form.category_id" @change="syncProgramProfile" :class="{ 'is-invalid': errors.category_id }" class="form-select">
                                 <option value="">[ Pilih ]</option>
                                 <option v-for="(category, index) in categories" :key="index" :value="category.id">
                                     {{ category.name }}</option>
@@ -57,8 +57,9 @@
                         </div>
 
                         <div class="col-12">
-                            <label class="form-label">Jumlah Sesi</label>
-                            <input type="number" class="form-control" v-model="form.total_section" :class="{ 'is-invalid': errors.total_section }" placeholder="Jumlah Sesi">
+                            <label class="form-label">Jumlah {{ currentProfile.section_label }}</label>
+                            <input type="number" min="1" max="100" class="form-control" v-model="form.total_section" :class="{ 'is-invalid': errors.total_section }" placeholder="Jumlah Section">
+                            <div class="form-text">{{ currentProfile.section_help }}</div>
                             <div v-if="errors.total_section" class="invalid-feedback">
                                 {{ errors.total_section }}
                             </div>
@@ -80,8 +81,9 @@
                             <label class="form-label">Jenis Penilaian</label>
                             <select v-model="form.assessment_type" :class="{ 'is-invalid': errors.assessment_type }" class="form-select">
                                 <option value="">[ Pilih ]</option>
-                                <option value="1">Dihitung Per Kategori Penilaian</option>
+                                <option v-for="option in assessmentOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
                             </select>
+                            <div v-if="selectedAssessmentOption" class="form-text">{{ selectedAssessmentOption.description }}</div>
                             <div v-if="errors.assessment_type" class="invalid-feedback">
                                 {{ errors.assessment_type }}
                             </div>
@@ -126,7 +128,7 @@
     import { Link } from '@inertiajs/inertia-vue3';
 
     //import reactive
-    import { reactive } from 'vue';
+    import { computed, reactive } from 'vue';
 
     // import Swal
     import Swal from 'sweetalert2';
@@ -137,9 +139,6 @@
     } from '@inertiajs/inertia-vue3';
 
     import { Inertia } from '@inertiajs/inertia';
-
-    //import axios
-    import axios from 'axios';
 
     export default {
         // layout
@@ -154,11 +153,13 @@
         //props
         props: {
             errors: Object,
-            categories: Object
+            categories: Object,
+            programProfiles: Object,
+            sectionCounts: Object,
         },
 
         // initialization composition API
-        setup() {
+        setup(props) {
             const form = reactive({
                 category_id: '',
                 name: '',
@@ -169,6 +170,28 @@
                 show_answer: '',
                 minimum_grade: '',
             });
+
+            const fallbackProfile = {
+                program: 'UMUM',
+                section_label: 'Section',
+                section_help: 'Section menentukan urutan soal dan hasil.',
+                question_assessment_options: [],
+            };
+            const currentProfile = computed(() => props.programProfiles?.[form.category_id] || fallbackProfile);
+            const isStructuredProgram = computed(() => ['CPNS', 'UTBK', 'TKA'].includes(currentProfile.value.program));
+            const assessmentOptions = computed(() => currentProfile.value.question_assessment_options || []);
+            const selectedAssessmentOption = computed(() => assessmentOptions.value.find(option => Number(option.value) === Number(form.assessment_type)));
+            const syncProgramProfile = () => {
+                form.assessment_type = assessmentOptions.value[0]?.value || '';
+
+                if (isStructuredProgram.value) {
+                    form.add_value_category = 1;
+                    form.total_section = Number(props.sectionCounts?.[form.category_id] || 0);
+                } else {
+                    form.add_value_category = '';
+                    form.total_section = '';
+                }
+            };
 
             // submit method
             const submit = () => {
@@ -184,8 +207,7 @@
                     show_answer: form.show_answer,
                     minimum_grade: form.minimum_grade,
                 }, {
-                    onSuccess: (response) => {
-                        console.log(response);
+                    onSuccess: () => {
                         //show success alert
                         Swal.fire({
                             title: 'Success!',
@@ -202,6 +224,11 @@
             return {
                 form,
                 submit,
+                currentProfile,
+                isStructuredProgram,
+                assessmentOptions,
+                selectedAssessmentOption,
+                syncProgramProfile,
             }
         }
     }

@@ -1,581 +1,224 @@
 <template>
   <Head>
-    <title>{{ appName }} - Ujiann</title>
-    style
+    <title>{{ appName }} - Koreksi Jawaban</title>
   </Head>
-  <!--start page wrapper -->
-  <div class="fullscreen-wrapper">
-    <div class="container" style="margin-top: 100px; margin-bottom: 100px">
-      <div class="row">
-        <div
-          class="col-md-12 col-sm-12 col-xs-12"
-          :class="
-            exam.show_question_number_navigation == 1 && questionLists[indexPage]['type'] == 1
-              ? 'col-lg-8'
-              : 'col-lg-12'
-          ">
+
+  <div class="fullscreen-wrapper" ref="reviewRoot">
+    <div class="container" style="margin-top: 80px; margin-bottom: 80px">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <h4 class="mb-1">Koreksi Jawaban</h4>
+          <p class="text-muted mb-0">{{ exam.title }}</p>
+        </div>
+        <Link :href="`/user/grades/${grade.id}`" class="btn btn-outline-primary btn-sm">Kembali ke Hasil</Link>
+      </div>
+
+      <div v-if="currentAnswer" class="row">
+        <div class="col-lg-8">
           <div class="card">
-            <div class="card-header bg-primary mb-3">
-              <div class="d-flex justify-content-between">
-                <div class="text-start">
-                  <div v-if="exam.show_question_number == 1">
-                    <h4 class="mb-0 text-white">
-                      <span class="badge bg-danger" v-if="questionLists[indexPage]['type'] == 1"
-                        >Pertanyaan {{ indexPageGlobal }}</span
-                      >
-                    </h4>
-                    <h4 class="mb-0 text-white">
-                      <span class="badge bg-danger" v-if="questionLists[indexPage]['type'] == 2">Directions</span>
-                    </h4>
-                  </div>
-                </div>
-                <div class="text-end">
-                </div>
-              </div>
+            <div class="card-header bg-primary text-white">
+              <span v-if="currentAnswer.type == 1" class="badge bg-danger">
+                Pertanyaan {{ currentAnswer.review_number }}
+              </span>
+              <span v-else class="badge bg-danger">Petunjuk</span>
+              <span class="ms-2">{{ currentAnswer.value_category_name }}</span>
             </div>
+
             <div class="card-body">
-              <div v-if="questionLists[indexPage]">
-                <div v-if="questionLists[indexPage]['type'] == 1">
-                  <div v-if="questionLists[indexPage]['audio_input'] == 1">
-                    <div style="min-height: 75px" class="text-center">
-                      <h2>{{}}</h2>
-                      <p>
-                        Audio play limit :
-                        {{
-                          questionLists[indexPage]["audio_played_limit"] - questionLists[indexPage]["audio_played"] <= 0
-                            ? 0
-                            : questionLists[indexPage]["audio_played_limit"] - questionLists[indexPage]["audio_played"]
-                        }}
-                      </p>
-                      <div
-                        v-if="
-                          questionLists[indexPage]['audio_played'] == questionLists[indexPage]['audio_played_limit']
-                        ">
-                        <VueCountdown
-                          v-if="questionLists[indexPage]['audio_answer_time'] > 0"
-                          :transform="transform"
-                          :time="questionLists[indexPage]['audio_answer_time']"
-                          @progress="handleChangeDurationListening"
-                          @end="endedAudio('nextPage')"
-                          v-slot="{ hours, minutes, seconds }">
-                          <p><b>Time Remaining</b></p>
-                          <h5 class="mb-0 text-white">
-                            <span class="badge bg-danger">{{ hours }}</span> :
-                            <span class="badge bg-danger">{{ minutes }}</span> :
-                            <span class="badge bg-danger">{{ seconds }}</span>
-                          </h5>
-                        </VueCountdown>
-                      </div>
-                      <div
-                        v-if="
-                          (questionLists[indexPage]['audio_answer_time'] == 0 &&
-                            questionLists[indexPage]['audio_played'] ==
-                              questionLists[indexPage]['audio_played_limit']) ||
-                          questionLists[indexPage]['audio_played'] > questionLists[indexPage]['audio_played_limit']
-                        ">
-                        <audio controls controlsList="noremoteplayback nodownload noplaybackrate">
-                          Your browser does not support the audio element.
-                        </audio>
-                      </div>
-                      <div
-                        v-if="questionLists[indexPage]['audio_played'] < questionLists[indexPage]['audio_played_limit']"
-                        class="text-center"
-                        id="audioDiv">
-                        <button
-                          id="playButtonAudio"
-                          v-on:click="playAudio"
-                          class="btn btn-secondary btn-sm"
-                          style="
-                            display: none;
-                            position: absolute;
-                            z-index: 1;
-                            margin-top: 10px;
-                            margin-left: 15px;
-                            height: 36px;
-                            width: 36px;
-                            border-radius: 50%;
-                          ">
-                          <i class="bx bx-play"></i>
-                        </button>
-                        <audio
-                          id="myAudio"
-                          v-on:playing="removePause"
-                          controls
-                          v-bind:autoplay="true"
-                          controlsList="noremoteplayback nodownload"
-                          v-on:ended="endedAudio()"
-                          v-bind:src="'/storage/upload_files/questions/' + questionLists[indexPage]['audio']">
-                          Your browser does not support the audio element.
-                        </audio>
-                      </div>
+              <template v-if="currentAnswer.type == 1">
+                <div v-html="currentAnswer.question" class="prevent-select mb-3"></div>
+
+                <div class="list-group mb-4">
+                  <div
+                    v-for="option in currentOptions"
+                    :key="option.number"
+                    class="list-group-item"
+                    :class="optionClass(option.number)">
+                    <div class="d-flex align-items-start gap-2">
+                      <strong>{{ option.label }}.</strong>
+                      <div class="flex-grow-1" v-html="option.content"></div>
+                      <span v-if="option.number == currentAnswer.question_answer" class="badge bg-success">Kunci</span>
+                      <span
+                        v-if="option.number == currentAnswer.answer && option.number != currentAnswer.question_answer"
+                        class="badge bg-danger">
+                        Jawaban Anda
+                      </span>
+                      <span
+                        v-if="option.number == currentAnswer.answer && option.number == currentAnswer.question_answer"
+                        class="badge bg-success">
+                        Jawaban Anda
+                      </span>
                     </div>
-                    <hr style="border: 1px solid red" />
                   </div>
+                </div>
 
-                  <div>
-                    <div v-html="questionListAll[valueCategoryIndex][indexPage]['question']" class="prevent-select"></div>
+                <div class="card border border-primary mb-0">
+                  <div class="card-header bg-light-primary">
+                    <h6 class="mb-0 text-primary">Pembahasan</h6>
                   </div>
-                  <table>
-                    <tbody v-if="exam.type_option == 1">
-                      <tr v-for="(answer, index) in questionListAll[valueCategoryIndex][indexPage]['answer_order'].split(',')" :key="index">
-                        <span>
-                          <td width="50" style="padding: 10px">
-                            <button
-                              v-if="answer == questionListAll[valueCategoryIndex][indexPage]['answer']"
-                              @click="submitAnswer(questionListAll[valueCategoryIndex][indexPage]['question_id'], answer)"
-                              class="btn btn-success text-white">
-                              {{ options[index] }}
-                            </button>
-                            <button
-                              v-else
-                              @click="submitAnswer(questionListAll[valueCategoryIndex][indexPage]['question_id'], answer)"
-                              class="btn btn-outline-primary w-100">
-                              {{ options[index] }}
-                            </button>
-                          </td>
-                          <td style="padding: 10px">
-                            <p
-                              class="prevent-select"
-                              v-if="exam.show_answer == 1"
-                              v-html="questionListAll[valueCategoryIndex][indexPage]['option_' + answer]"></p>
-                          </td>
-                        </span>
-                      </tr>
-                    </tbody>
-                    <tbody v-if="exam.type_option == 2">
-                      <tr
-                        v-for="(answer, index) in questionLists[indexPage]['answer_order'].split(',')"
-                        :key="index"
-                        v-if="exam.show_answer == 1">
-                        <td width="30">
-                          <p>{{ options[index] }}.</p>
-                        </td>
-                        <td>
-                          <p v-html="questionLists[indexPage]['option_' + answer]"></p>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                  <!-- <br> -->
-                  <div class="text-center" v-if="exam.type_option == 2">
-                    <span v-for="(answer, index) in answerOrder" :key="index">
-                      <button v-if="answer == questionLists[indexPage]['answer']" class="btn btn-success ms-3">
-                        {{ options[index] }}
-                      </button>
-                      <button v-else @click="submitAnswer(page, answer)" class="btn btn-outline-primary ms-3">
-                        {{ options[index] }}
-                      </button>
-                    </span>
+                  <div class="card-body">
+                    <div v-if="hasDiscussion(currentAnswer.discussion)" v-html="currentAnswer.discussion"></div>
+                    <div v-else class="text-muted">Pembahasan untuk soal ini belum tersedia.</div>
                   </div>
                 </div>
-                <div v-if="questionLists[indexPage]['type'] == 2">
-                  <div v-html="questionLists[indexPage]['direction']" class="prevent-select"></div>
-                </div>
-              </div>
+              </template>
 
-              <div v-else>
-                <div class="alert alert-danger border-0 shadow">
-                  <i class="fa fa-exclamation-triangle"></i> Question Not Found!.
-                </div>
-              </div>
+              <div v-else v-html="currentAnswer.direction" class="prevent-select"></div>
             </div>
-            <div class="card-footer">
-              <div class="d-flex justify-content-between">
-                <div class="text-start">
-                  <div v-if="exam.show_prev_next_button == 1">
-                    <button
-                      v-if="indexPage > 0 && questionLists[indexPage]['type'] == 1"
-                      @click="prevPage()"
-                      type="button"
-                      class="btn btn-primary me-3"
-                      :disabled="isLoading">
-                      Prev
-                    </button>
-                    <button
-                      v-if="indexPageGlobal < questionCount - 1"
-                      @click="nextPage"
-                      type="button"
-                      class="btn btn-success"
-                      :disabled="isLoading">
-                      <div v-if="isLoading" class="spinner-border spinner-border-sm" role="status">
-                        <span class="sr-only"></span>
-                      </div>
-                      <span v-else>Next</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
+
+            <div class="card-footer d-flex justify-content-between">
+              <button class="btn btn-primary" :disabled="indexPage === 0" @click="previousPage">Sebelumnya</button>
+              <button class="btn btn-success" :disabled="indexPage >= answers.length - 1" @click="nextPage">Berikutnya</button>
             </div>
           </div>
         </div>
 
-        <!-- v-if="exam.show_question_number_navigation == 1 && questionLists[indexPage]['type'] == 1" -->
-        <div
-          v-if="exam.show_question_number_navigation == 1"
-          class="col-md-12 col-sm-12 col-xs-12"
-          :class="{ 'col-lg-4': exam.show_question_number_navigation == 1 }">
+        <div class="col-lg-4">
           <div class="card">
-            <div class="card-header text-white bg-primary mb-3">
-              <div class="d-flex justify-content-between">
-                <div>
-                  <h5 class="mb-0 text-white">Nomor</h5>
-                </div>
-              </div>
+            <div class="card-header bg-primary text-white">
+              <h5 class="mb-0 text-white">Navigasi Soal</h5>
             </div>
-            <div class="card-body" style="height: 450px; overflow-y: auto">
-              <div v-for="(valueCategories, categoryIndex) in questionListAllWithOrder" :key="categoryIndex" style="margin-bottom: 25px;">
-                <h5 class="mb-3">{{ categoryIndex }}</h5>
-                <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-                <div v-for="(question, index) in valueCategories" :key="index">
-                    <div style="padding: 3px">
-                      <button 
-                        @click="clickQuestion(index, categoryIndex, question.global_order)" 
-                        class="btn w-100"
-                        :class="getButtonNavigationClass(index, categoryIndex, question)">
-                        <small>{{ question.global_order }}</small>
-                      </button>
-                    </div>
-                  </div>
+            <div class="card-body" style="max-height: 560px; overflow-y: auto">
+              <div v-for="group in answerGroups" :key="group.name" class="mb-4">
+                <h6>{{ group.name }}</h6>
+                <div class="d-flex flex-wrap gap-2">
+                  <button
+                    v-for="item in group.items"
+                    :key="item.answer.question_id"
+                    type="button"
+                    class="btn btn-sm"
+                    :class="navigationClass(item)"
+                    @click="selectAnswer(item.index)">
+                    {{ item.answer.review_number }}
+                  </button>
                 </div>
-              </div>
-            </div>
-            <div class="card-footer">
-              <div class="btn-group" role="group">
-                <button
-                  @click="showModalEndExam = true"
-                  class="btn btn-danger btn-md border-0 shadow w-100">
-                  Akhiri Ujian
-                </button>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      <div v-else class="alert alert-warning">Data jawaban untuk ujian ini tidak tersedia.</div>
     </div>
   </div>
-  <!--end page wrapper -->
-
 </template>
 
 <script>
-//import layout admin
 import LayoutUser from "../../../../Layouts/LayoutUser.vue";
-
-import axios from "axios";
-
-import MathJax, { initMathJax, renderByMathjax } from "mathjax-vue3";
-
 import { Head, Link } from "@inertiajs/inertia-vue3";
-
-//import ref
-import { ref } from "vue";
-
-//import VueCountdown
-import VueCountdown from "@chenfengyuan/vue-countdown";
-
-//import inertia adapter
-import { Inertia } from "@inertiajs/inertia";
-
-//import sweet alert2
-import Swal from "sweetalert2";
+import { computed, nextTick, onMounted, ref, watch } from "vue";
+import { initMathJax, renderByMathjax } from "mathjax-vue3";
 
 export default {
-  //layout
   layout: LayoutUser,
-
-  //register components
-  components: {
-    Head,
-    Link,
-    VueCountdown,
-    MathJax,
-  },
-
-  //props
+  components: { Head, Link },
   props: {
-    id: String,
-    page: Number,
     exam: Object,
-    duration: Object,
-    questionLists: Object,
-    questionListAll: Object,
-    section: Number,
-    lastSection: Number,
     grade: Object,
-    indexPage: Object,
-    indexPageGlobal: Number,
-    questionCount: Number,
+    answers: Array,
   },
-  mounted() {
-    let recaptchaScript = document.createElement("script");
-    recaptchaScript.setAttribute(
-      "src",
-      "https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
-    );
-    document.head.appendChild(recaptchaScript);
-
-    function onMathJaxReady() {
-      const el = document.getElementById("elementId");
-      renderByMathjax(el);
-    }
-    initMathJax({}, onMathJaxReady);
-  },
-
   setup(props) {
-    var indexPage = ref(props.indexPage);
-    var indexPageGlobal = ref(1);
-    var valueCategoryIndex = ref("TWK"); // default category index / kategori soal
-    let options = ["A", "B", "C", "D", "E"];
+    const indexPage = ref(0);
+    const reviewRoot = ref(null);
+    const optionLabels = ["A", "B", "C", "D", "E"];
+    const currentAnswer = computed(() => props.answers[indexPage.value] || null);
+    const currentOptions = computed(() => {
+      if (!currentAnswer.value) {
+        return [];
+      }
 
-    const counter = ref(0);
-    const counterListening = ref(0);
+      return optionLabels
+        .map((label, index) => ({
+          label,
+          number: index + 1,
+          content: currentAnswer.value[`option_${index + 1}`],
+        }))
+        .filter((option) => option.content !== null && option.content !== undefined && option.content !== "");
+    });
+    const answerGroups = computed(() => {
+      const groups = new Map();
 
-    const duration = ref(props.duration);
+      props.answers.forEach((answer, index) => {
+        if (Number(answer.type) !== 1) {
+          return;
+        }
 
-    const handleChangeDuration = () => {
-      duration.value = duration.value - 1000;
-      counter.value = counter.value + 1;
+        const name = answer.value_category_name || `Bagian ${answer.section || 1}`;
+        if (!groups.has(name)) {
+          groups.set(name, []);
+        }
+        groups.get(name).push({ answer, index });
+      });
+
+      return Array.from(groups, ([name, items]) => ({ name, items }));
+    });
+
+    const renderMath = async () => {
+      await nextTick();
+      if (reviewRoot.value) {
+        renderByMathjax(reviewRoot.value);
+      }
     };
 
-    const handleChangeDurationListening = () => {
-      props.questionLists[indexPage.value].audio_answer_time =
-        props.questionLists[indexPage.value].audio_answer_time - 1000;
-      counterListening.value = counterListening.value + 1;
-    };
+    onMounted(() =>
+      initMathJax(
+        {
+          url: "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js",
+          loadType: "defer",
+        },
+        renderMath
+      )
+    );
+    watch(indexPage, renderMath);
 
-    const prevPage = () => {
-      indexPage.value = indexPage.value - 1;
-    };
+    const hasDiscussion = (discussion) => {
+      if (!discussion) {
+        return false;
+      }
 
-    const nextPage = () => {
-      indexPage.value = indexPage.value + 1;
+      const element = document.createElement("div");
+      element.innerHTML = discussion;
+      return element.textContent.trim().length > 0 || element.querySelector("img, audio, video, table") !== null;
     };
+    const optionClass = (optionNumber) => ({
+      "border-success bg-light-success": optionNumber == currentAnswer.value?.question_answer,
+      "border-danger bg-light-danger":
+        optionNumber == currentAnswer.value?.answer && optionNumber != currentAnswer.value?.question_answer,
+    });
+    const navigationClass = (item) => {
+      if (item.index === indexPage.value) {
+        return "btn-primary";
+      }
 
-    const clickQuestion = (index, categoryIndex, indexGlobal) => {
+      return item.answer.answer == item.answer.question_answer ? "btn-outline-success" : "btn-outline-danger";
+    };
+    const selectAnswer = (index) => {
       indexPage.value = index;
-      valueCategoryIndex.value = categoryIndex;
-      indexPageGlobal.value = indexGlobal;
     };
-
-    const removePause = () => {
-      $("#playButtonAudio").hide();
+    const previousPage = () => {
+      if (indexPage.value > 0) {
+        indexPage.value--;
+      }
     };
-
-    const playAudio = () => {
-      var play = document.getElementById("myAudio");
-      play.play();
-    };
-
-    const isLoading = ref(false);
-
-    const submitAnswer = (question_id, answer) => {
-      isLoading.value = true;
-      axios
-        .post(`/user/exams/${props.exam.id}/exam-answer`, {
-          grade_id: props.grade.id,
-          question_id: question_id,
-          answer: answer,
-          number: indexPage.value,
-        })
-        .then(function (response) {
-          props.questionListAll[valueCategoryIndex.value][indexPage.value]["answer"] = answer;
-          // if (props.exam.next_question_automatically == 1) {
-          //   if (indexPage.value < Object.keys(props.questionLists).length - 1) {
-          //     nextPage();
-          //   }
-          // }
-        })
-        .catch(function (error) {
-          console.log(error);
-          alert("error silakan refresh halaman.");
-        })
-        .finally(() => {
-          isLoading.value = false;
-        });
-    };
-
-    const endedAudio = (description = "") => {
-      axios
-        .post(`/user/exams/${props.exam.id}/audio-played`, {
-          grade_id: props.grade.id,
-          question_id: props.questionLists[indexPage.value].question_id,
-        })
-        .then(function (response) {
-          props.questionLists[indexPage.value]["audio_played"] =
-            props.questionLists[indexPage.value]["audio_played"] + 1;
-
-          if (
-            props.questionLists[indexPage.value]["audio_played"] <
-            props.questionLists[indexPage.value]["audio_played_limit"]
-          ) {
-            $("#playButtonAudio").show();
-          }
-
-          if (description == "nextPage") {
-            nextPage();
-          }
-        })
-        .catch(function (error) {
-          alert("error silakan refresh halaman.");
-        });
-    };
-
-    //define state modal
-    const showModalEndExam = ref(false);
-    const showModalEndTimeExam = ref(false);
-
-    //method endExam
-    const isLoadingNextSection = ref(false);
-    const endExam = (block = "") => {
-      isLoadingNextSection.value = true;
-
-      if (block === "block" || block === "end") {
-        Inertia.post(
-          `/user/exams/${props.exam.id}/exam-end`,
-          {
-            exam_id: props.exam.id,
-            grade_id: props.grade.id,
-          },
-          {
-            onSuccess: () => {
-              if (block === "block") {
-                Swal.fire({
-                  title: "UJIAN DIBLOKIR KARENA SUDAH MELEWATI BATAS TOLERANSI.",
-                  text: "Anda tidak dapat melanjutkan ujian, silakan hubungi admin",
-                  icon: "warning",
-                  confirmButtonColor: "#d33",
-                  confirmButtonText: "Mengerti",
-                  allowOutsideClick: false,
-                }).then(() => {
-                  location.reload();
-                });
-              } else {
-                Swal.fire({
-                  title: "Success..",
-                  text: "Ujian Anda Selesai, Semoga Mendapatkan Nilai Terbaik.",
-                  icon: "success",
-                  confirmButtonText: "Tutup",
-                  allowOutsideClick: false,
-                }).then(() => {
-                  location.reload();
-                });
-              }
-            },
-            onFinish: () => {
-              // selalu dijalankan di akhir, sukses atau gagal
-              isLoadingNextSection.value = false;
-            },
-          }
-        );
-      } else if (block === "next") {
-        Inertia.get(
-          `/user/exams/${props.exam.id}/sections/${props.section + 1}?nextsection=1`,
-          {},
-          {
-            onFinish: () => {
-              isLoadingNextSection.value = false;
-            },
-          }
-        );
-
-        Swal.fire({
-          title: "Success!",
-          text: "Continue to the next section...",
-          icon: "success",
-          showConfirmButton: false,
-          timer: 2000,
-        });
-      } else if (block === "previous") {
-        Inertia.get(
-          `/user/exams/${props.exam.id}/sections/${props.section - 1}?nextsection=1`,
-          {},
-          {
-            onFinish: () => {
-              isLoadingNextSection.value = false;
-            },
-          }
-        );
-
-        Swal.fire({
-          title: "Success!",
-          text: "Continue to the previous section...",
-          icon: "success",
-          showConfirmButton: false,
-          timer: 2000,
-        });
+    const nextPage = () => {
+      if (indexPage.value < props.answers.length - 1) {
+        indexPage.value++;
       }
     };
 
     return {
+      answerGroups,
+      currentAnswer,
+      currentOptions,
+      hasDiscussion,
       indexPage,
-      indexPageGlobal,
-      options,
-      removePause,
-      playAudio,
-      // answerOrder,
-      duration,
-      handleChangeDuration,
-      handleChangeDurationListening,
-      prevPage,
+      navigationClass,
       nextPage,
-      clickQuestion,
-      valueCategoryIndex,
-      submitAnswer,
-      endedAudio,
-      showModalEndExam,
-      showModalEndTimeExam,
-      endExam,
-      isLoading,
-      isLoadingNextSection,
-      fullscreen: false,
+      optionClass,
+      previousPage,
+      reviewRoot,
+      selectAnswer,
     };
-  },
-  methods: {
-    transform(props) {
-      Object.entries(props).forEach(([key, value]) => {
-        // Adds leading zero
-        const digits = value < 10 ? `0${value}` : value;
-        props[key] = `${digits}`;
-      });
-
-      return props;
-    },
-    getButtonNavigationClass(index, categoryIndex, question) {
-      // Kondisi 1 — tombol aktif
-      if (index == this.indexPage && categoryIndex == this.valueCategoryIndex) {
-        // jika belum dijawab
-        if (question.answer == 0) {
-          return 'btn-primary';
-        // jika sudah dijawab
-        } else {
-          return 'btn-success';
-        }
-      }
-
-      // Kondisi 2 — belum dijawab
-      if (question.answer == 0) {
-        return 'btn-outline-primary';
-      }
-
-      // Kondisi 3 — sudah dijawab
-      return 'btn-success';
-    },
-  },
-  computed: {
-    // menggabungkan nomor urut soal pada semua section
-    questionListAllWithOrder() {
-      let counter = 1
-      const result = {}
-
-      Object.keys(this.questionListAll).forEach(category => {
-        result[category] = this.questionListAll[category].map(q => ({
-          ...q,
-          global_order: counter++
-        }))
-      })
-
-      return result
-    }
   },
 };
 </script>

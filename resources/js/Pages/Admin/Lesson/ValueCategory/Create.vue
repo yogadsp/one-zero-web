@@ -30,7 +30,7 @@
                     <form @submit.prevent="submit" class="row g-3">
                         <div class="col-12">
                             <label class="form-label">Kategori</label>
-                            <select v-model="form.category_id" :class="{ 'is-invalid': errors.category_id }" class="form-select">
+                            <select v-model="form.category_id" @change="syncProgramProfile" :class="{ 'is-invalid': errors.category_id }" class="form-select">
                                 <option value="">[ Pilih ]</option>
                                 <option v-for="(category, index) in categories" :key="index" :value="category.id">
                                     {{ category.name }}</option>
@@ -52,18 +52,18 @@
                             <label class="form-label">Jenis Penilaian</label>
                             <select v-model="form.assessment_type" :class="{ 'is-invalid': errors.assessment_type }" class="form-select">
                                 <option value="">[ Pilih ]</option>
-                                <option value="1">Nilai = Jumlah Benar : Total Soal</option>
-                                <option value="2">Nilai = Jumlah Jawaban Benar</option>
-                                <option value="3">Nilai = Jumlah Per Option</option>
+                                <option v-for="option in assessmentOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
                             </select>
+                            <div v-if="selectedAssessmentOption" class="form-text">{{ selectedAssessmentOption.description }}</div>
                             <div v-if="errors.assessment_type" class="invalid-feedback">
                                 {{ errors.assessment_type }}
                             </div>
                         </div>
 
                         <div class="col-12">
-                            <label class="form-label">Section</label>
-                            <input type="text" class="form-control" v-model="form.section" :class="{ 'is-invalid': errors.section }" placeholder="Section">
+                            <label class="form-label">Urutan / {{ currentProfile.section_label }}</label>
+                            <input type="number" min="1" max="100" class="form-control" v-model="form.section" :class="{ 'is-invalid': errors.section }" placeholder="Contoh: 1">
+                            <div class="form-text">{{ currentProfile.section_help }}</div>
                             <div v-if="errors.section" class="invalid-feedback">
                                 {{ errors.section }}
                             </div>
@@ -88,7 +88,7 @@
     import { Link } from '@inertiajs/inertia-vue3';
 
     //import reactive
-    import { reactive } from 'vue';
+    import { computed, reactive } from 'vue';
 
     // import Swal
     import Swal from 'sweetalert2';
@@ -113,11 +113,12 @@
         //props
         props: {
             errors: Object,
-            categories: Object
+            categories: Object,
+            programProfiles: Object,
         },
 
         // initialization composition API
-        setup() {
+        setup(props) {
             const form = reactive({
                 name: '',
                 category_id: '',
@@ -125,6 +126,19 @@
                 assessment_type: '',
                 section: '',
             });
+
+            const fallbackProfile = {
+                section_label: 'Section',
+                section_help: 'Section menentukan urutan soal dan hasil.',
+                value_assessment_options: [],
+            };
+            const currentProfile = computed(() => props.programProfiles?.[form.category_id] || fallbackProfile);
+            const assessmentOptions = computed(() => currentProfile.value.value_assessment_options || []);
+            const selectedAssessmentOption = computed(() => assessmentOptions.value.find(option => Number(option.value) === Number(form.assessment_type)));
+            const syncProgramProfile = () => {
+                form.assessment_type = assessmentOptions.value[0]?.value || '';
+                form.section = '';
+            };
 
             // submit method
             const submit = () => {
@@ -153,6 +167,10 @@
             return {
                 form,
                 submit,
+                currentProfile,
+                assessmentOptions,
+                selectedAssessmentOption,
+                syncProgramProfile,
             }
         }
     }

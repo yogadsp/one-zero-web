@@ -54,7 +54,7 @@
                                     </td>
                                     <td>{{ valueCategory.category.name }}</td>
                                     <td>{{ valueCategory.name }}</td>
-                                    <td>{{ valueCategory.assessment_type == 1 ? 'Nilai = Jumlah Benar : Total Soal' : valueCategory.assessment_type  == 2 ? 'Nilai = Jumlah Jawaban Benar' : 'Nilai = Jumlah Per Option' }}</td>
+                                    <td>{{ valueCategory.assessment_type == 1 ? 'Persentase Jawaban Benar' : valueCategory.assessment_type  == 2 ? 'Jumlah Jawaban Benar' : 'Jumlah Poin Per Opsi' }}</td>
                                     <td>{{ valueCategory.section }}</td>
                                     <td>
                                         <div class="d-flex order-actions">

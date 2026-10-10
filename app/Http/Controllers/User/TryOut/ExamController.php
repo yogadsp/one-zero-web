@@ -3,30 +3,33 @@
 namespace App\Http\Controllers\User\TryOut;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Services\Contracts\MasterData\CategoryInterface as CategoryService;
-use App\Services\Contracts\Exam\ExamInterface as ExamService;
-// delete soon
-use DB;
 use App\Models\Exam\Grade;
 use App\Models\Exam\GradeDetail;
 use App\Models\Exam\ValueCategoryExam;
+// delete soon
+use App\Models\Lesson\DetailValueCategory;
 use App\Models\Lesson\Question;
-use App\Models\Lesson\{DetailValueCategory, ValueCategory};
-use Ramsey\Uuid\Uuid as Generator;
-use Carbon\Carbon;
+use App\Models\Lesson\ValueCategory;
+use App\Services\Contracts\Exam\ExamInterface as ExamService;
+use App\Services\Contracts\MasterData\CategoryInterface as CategoryService;
+use App\Services\Exam\ExamScoringService;
+use App\Services\Learning\LearningAccessService;
 use Auth;
-use App\Models\Transaction\Transaction;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
 
 class ExamController extends Controller
 {
-    protected $categoryService, $examService;
+    protected $categoryService;
+
+    protected $examService;
 
     public function __construct(
         CategoryService $categoryService,
-        ExamService $examService
-    )
-    {
+        ExamService $examService,
+        protected LearningAccessService $learningAccessService,
+        protected ExamScoringService $examScoringService,
+    ) {
         $this->categoryService = $categoryService;
         $this->examService = $examService;
 
@@ -40,10 +43,12 @@ class ExamController extends Controller
      */
     public function index(Request $request, $categoryId)
     {
-        if(!$this->categoryService->find($categoryId)) return abort('404', 'uppss....');
-        
+        if (! $this->categoryService->find($categoryId)) {
+            return abort('404', 'uppss....');
+        }
+
         return inertia('User/TryOut/Exam/Index', [
-            'exams' => $this->examService->getAllByCategoryPaginatedWithParams($request, $categoryId)
+            'exams' => $this->examService->getAllByCategoryPaginatedWithParams($request, $categoryId),
         ]);
     }
 
@@ -55,66 +60,75 @@ class ExamController extends Controller
      */
     public function show($categoryId, $id)
     {
-        if(!$this->categoryService->find($categoryId)) return abort('404', 'uppss....');
-        if(!$this->examService->find($id)) return abort('404', 'uppss....');
+        if (! $this->categoryService->find($categoryId)) {
+            return abort('404', 'uppss....');
+        }
+        if (! $this->examService->find($id)) {
+            return abort('404', 'uppss....');
+        }
 
         //get grade / nilai
         $grade = Grade::where('exam_id', $id)
-                    ->where('user_id', auth()->user()->id)
-                    ->first();
+            ->where('user_id', auth()->user()->id)
+            ->first();
 
         return inertia('User/TryOut/Exam/Show', [
             'exam' => $this->examService->find($id),
-            'grade' => $grade
+            'grade' => $grade,
         ]);
     }
 
     public function examReset($id)
     {
-        if(!$this->examService->find($id)) return abort('404', 'uppss....');
+        if (! $this->examService->find($id)) {
+            return abort('404', 'uppss....');
+        }
 
         $exam = $this->examService->find($id);
 
         Grade::where(['exam_id' => $exam->id, 'user_id' => Auth::user()->id])->delete();
-        
+
         return redirect()->route('user.categories.lesson-categories.lessons.exams.show', [$exam->category_id, $exam->lesson_category_id, $exam->lesson_id, $exam->id]);
     }
 
     public function examStart($id, Request $request)
     {
-        if(!$this->examService->find($id)) return abort('404', 'uppss....');
+        if (! $this->examService->find($id)) {
+            return abort('404', 'uppss....');
+        }
 
         $exam = $this->examService->find($id);
 
-        // transaksi dengan voucher yang digunakan
-        // $transactions = Transaction::where(['user_id' => Auth::user()->id,'voucher_used' => 1, 'exam_id' => $exam->id])->get();
+        if (! $this->learningAccessService->canAccess($request->user(), $exam)) {
+            return redirect()->back()->with('error', 'Anda tidak memiliki akses ke tryout '.strtoupper(strtolower($exam->title)).'. Silakan lakukan pembelian terlebih dahulu.');
+        }
 
-        // Transaksi telah diselesaikan dan statusnya 'done'
-        $transactions = Transaction::where(['user_id' => Auth::user()->id,'transaction_status' => 'done', 'exam_id' => $exam->id])->get();
-
-        if(count($transactions) == 0 && $exam->price > 0) {
-            return redirect()->back()->with('error', 'Anda tidak memiliki akses ke try out dengan judul <b>'.strtoupper(strtolower($exam->title)).'</b>, silakan lakukan pembelian terlebih dahulu.');
-        } 
-
-        $grade = Grade::where('exam_id', $id)->where('user_id', auth()->user()->id)->first();
-        $gradeOld = empty($grade->grade_old) ? 0 : $grade->grade_old;
+        $lastGrade = Grade::query()
+            ->where('exam_id', $id)
+            ->where('user_id', $request->user()->id)
+            ->latest('created_at')
+            ->first();
+        $gradeOld = empty($lastGrade?->grade_old) ? 0 : $lastGrade->grade_old;
 
         // if($request->repeat == 1) {
         //     Grade::where('exam_id', $id)->where('user_id', auth()->user()->id)->delete();
         //     GradeDetail::where('exam_id', $id)->where('user_id', auth()->user()->id)->delete();
         // }
 
-        $grade = Grade::where('exam_id', $id)->where('user_id', auth()->user()->id)->first();
-        $totalSection = ValueCategory::where('category_id', $exam->category_id)->count();
+        $activeSourceSections = Question::query()
+            ->where('question_title_id', $exam->question_title_id)
+            ->where('type', 1)
+            ->whereNotNull('section')
+            ->distinct()
+            ->orderBy('section')
+            ->pluck('section')
+            ->map(fn ($section) => (int) $section)
+            ->values();
+        $totalSection = $activeSourceSections->count();
 
-        $lastGrade = Grade::where('exam_id', $id)
-                    ->where('user_id', auth()->user()->id)
-                    ->orderBy('created_at', 'DESC')
-                    ->first();
-        
         // jika ada ujian yang belum selesai, lanjutkan
-        if(!empty($lastGrade) && $lastGrade->is_finished == 0) {
-            return redirect()->route('user.exams.exam-show-questions', [$lastGrade->exam_id, $lastGrade->section, $lastGrade->end_time->diffInMilliseconds(Carbon::now())]);
+        if (! empty($lastGrade) && $lastGrade->is_finished == 0 && ! empty($lastGrade->answers)) {
+            return redirect()->route('user.exams.exam-show-questions', [$lastGrade->exam_id, $lastGrade->section]);
         }
 
         $countGrade = Grade::where('exam_id', $id)->where('user_id', auth()->user()->id)->count();
@@ -126,149 +140,191 @@ class ExamController extends Controller
         }
 
         // if(!$grade) {
-            $answerInsert = [];
+        $answerInsert = [];
 
-            $valueExam = ValueCategoryExam::where(['exam_id' => $exam->id, 'section' => 1])->first();
+        $firstSourceSection = $activeSourceSections->first();
+        $valueExam = ValueCategoryExam::where(['exam_id' => $exam->id, 'section' => $firstSourceSection])->first();
 
-            if($exam->duration_type == 1) {
-                $addMinutes = (int) $exam->duration;
-            } else if($exam->duration_type == 2) {
-                $addMinutes = $valueExam->duration;
+        if ($exam->duration_type == 1) {
+            $addMinutes = (int) $exam->duration;
+        } elseif ($exam->duration_type == 2 && $valueExam) {
+            $addMinutes = $valueExam->duration;
+        } elseif ($exam->duration_type == 2) {
+            return redirect()->back()->with('error', 'Durasi bagian pertama ujian belum dikonfigurasi oleh admin.');
+        } else {
+            $addMinutes = 560;
+        }
+
+        //create defaul grade
+        // Pulihkan attempt kosong yang sempat dibuat ketika soal belum tersedia,
+        // tanpa menghapus identitas/history attempt tersebut.
+        $grade = ! empty($lastGrade) && $lastGrade->is_finished == 0 ? $lastGrade : new Grade();
+        $grade->category_id = $exam->category_id;
+        $grade->exam_id = $exam->id;
+        $grade->user_id = auth()->user()->id;
+        $grade->duration = $addMinutes;
+        $grade->total_tolerance = $exam->total_tolerance;
+        $grade->section = 1;
+        $grade->total_correct = 0;
+        $grade->total_section = $totalSection;
+        $grade->grade = 0;
+        $grade->grade_old = $gradeOld;
+        $grade->start_time = Carbon::now();
+        $grade->end_time = Carbon::now()->addMinutes($addMinutes)->addSeconds(2);
+        $grade->is_finished = 0;
+        $grade->number = 0;
+
+        $question_order = 1;
+
+        foreach ($activeSourceSections as $sourceSection) {
+            $section = $activeSourceSections->search($sourceSection) + 1;
+            if ($exam->random_question == 1) {
+                $questions = Question::where('section', $sourceSection)->where('question_title_id', $exam->question_title_id)->with('valueCategory')->inRandomOrder()->get();
             } else {
-                $addMinutes = 560;
+                $questions = Question::where('section', $sourceSection)->where('question_title_id', $exam->question_title_id)->with('valueCategory')->orderBy('created_at', 'ASC')->get();
             }
 
-            //create defaul grade
-            $grade = new Grade();
-            $grade->category_id = $exam->category_id;
-            $grade->exam_id = $exam->id;
-            $grade->user_id = auth()->user()->id;
-            $grade->duration = $addMinutes;
-            $grade->total_tolerance = $exam->total_tolerance;
-            $grade->section = 1;
-            $grade->total_correct = 0;
-            $grade->total_section = $totalSection;
-            $grade->grade = 0;
-            $grade->grade_old = $gradeOld;
-            $grade->start_time = Carbon::now();
-            $grade->end_time = Carbon::now()->addMinutes($addMinutes)->addSeconds(2);
-            $grade->is_finished = 0;
-            $grade->number = 0;
+            $navigation_order = 0;
 
-            $question_order = 1;
-
-            for($i = 1; $i <= $totalSection; $i++) {
-                if($exam->random_question == 1) {
-                    $questions = Question::where('section', $i)->where('question_title_id', $exam->question_title_id)->with('valueCategory')->inRandomOrder()->get();
-                } else {
-                    $questions = Question::where('section', $i)->where('question_title_id', $exam->question_title_id)->with('valueCategory')->orderBy('created_at', 'ASC')->get();
+            foreach ($questions as $question) {
+                if ($question->type == 1) {
+                    $navigation_order++;
                 }
-    
-                $navigation_order = 0;
-    
-                foreach ($questions as $question) {
-                    if($question->type == 1) {
-                        $navigation_order++;
-                    }
-                    
-                    $options = [];
-                    if($question->option_1 != null) $options[] = 1;
-                    if($question->option_2 != null) $options[] = 2;
-                    if($question->option_3 != null) $options[] = 3;
-                    if($question->option_4 != null) $options[] = 4;
-                    if($question->option_5 != null) $options[] = 5;
-    
-                    if($exam->random_answer == 1) {
-                        shuffle($options);
-                    }
-    
-                    if(empty($grade->answers)) {
-                        $answerInsert[] = [
-                            'question_id' => $question->id,
-                            'value_category_id' => $question->value_category_id,
-                            'value_category_name' => $question->valueCategory->name,
-                            'type' => $question->type,
-                            'direction' => $question->direction,
-                            'question_order' => $question_order,
-                            'navigation_order' => $navigation_order,
-                            'audio_input' => $question->audio_input,
-                            'audio' => $question->audio,
-                            'audio_played' => (int) $question->audio_played,
-                            'audio_played_limit' => (int) $question->audio_played_limit,
-                            'audio_answer_time' => $question->audio_answer_time == null || $question->audio_answer_time == 0 ? 0 : (int) $question->audio_answer_time * 1000,
-                            'question' => $question->question,
-                            'question_answer' => $question->answer,
-                            'option_1' => empty($question->option_1) ? null : $question->option_1,
-                            'option_2' => empty($question->option_2) ? null : $question->option_2,
-                            'option_3' => empty($question->option_3) ? null : $question->option_3,
-                            'option_4' => empty($question->option_4) ? null : $question->option_4,
-                            'option_5' => empty($question->option_5) ? null : $question->option_5,
-                            'section' => $question->section,
-                            'answer_order' => implode(",", $options),
-                            'answer' => 0,
-                            'is_correct' => 'N',
-                            'option_has_point' => $question->option_has_point,
-                            'option_1_point' => empty($question->option_1_point) ? null : $question->option_1_point,
-                            'option_2_point' => empty($question->option_2_point) ? null : $question->option_2_point,
-                            'option_3_point' => empty($question->option_3_point) ? null : $question->option_3_point,
-                            'option_4_point' => empty($question->option_4_point) ? null : $question->option_4_point,
-                            'option_5_point' => empty($question->option_5_point) ? null : $question->option_5_point,
-                            'discussion' => $question->discussion, // pembahasan jawaban
-                        ];
-                    }
-    
-                    $question_order++;
-                }    
+
+                $options = [];
+                if ($question->option_1 != null) {
+                    $options[] = 1;
+                }
+                if ($question->option_2 != null) {
+                    $options[] = 2;
+                }
+                if ($question->option_3 != null) {
+                    $options[] = 3;
+                }
+                if ($question->option_4 != null) {
+                    $options[] = 4;
+                }
+                if ($question->option_5 != null) {
+                    $options[] = 5;
+                }
+
+                if ($exam->random_answer == 1) {
+                    shuffle($options);
+                }
+
+                if (empty($grade->answers)) {
+                    $answerInsert[] = [
+                        'question_id' => $question->id,
+                        'value_category_id' => $question->value_category_id,
+                        'value_category_name' => $question->valueCategory->name,
+                        'type' => $question->type,
+                        'direction' => $question->direction,
+                        'question_order' => $question_order,
+                        'navigation_order' => $navigation_order,
+                        'audio_input' => $question->audio_input,
+                        'audio' => $question->audio,
+                        'audio_played' => (int) $question->audio_played,
+                        'audio_played_limit' => (int) $question->audio_played_limit,
+                        'audio_answer_time' => $question->audio_answer_time == null || $question->audio_answer_time == 0 ? 0 : (int) $question->audio_answer_time * 1000,
+                        'question' => $question->question,
+                        'question_answer' => $question->answer,
+                        'option_1' => empty($question->option_1) ? null : $question->option_1,
+                        'option_2' => empty($question->option_2) ? null : $question->option_2,
+                        'option_3' => empty($question->option_3) ? null : $question->option_3,
+                        'option_4' => empty($question->option_4) ? null : $question->option_4,
+                        'option_5' => empty($question->option_5) ? null : $question->option_5,
+                        'section' => $section,
+                        'answer_order' => implode(',', $options),
+                        'answer' => 0,
+                        'is_correct' => 'N',
+                        'option_has_point' => $question->option_has_point,
+                        'option_1_point' => is_null($question->option_1_point) ? null : $question->option_1_point,
+                        'option_2_point' => is_null($question->option_2_point) ? null : $question->option_2_point,
+                        'option_3_point' => is_null($question->option_3_point) ? null : $question->option_3_point,
+                        'option_4_point' => is_null($question->option_4_point) ? null : $question->option_4_point,
+                        'option_5_point' => is_null($question->option_5_point) ? null : $question->option_5_point,
+                        'discussion' => $question->discussion, // pembahasan jawaban
+                    ];
+                }
+
+                $question_order++;
             }
-            $grade->answers = $answerInsert;
-            $grade->save();
+        }
+
+        if (empty($answerInsert)) {
+            return redirect()->back()->with('error', 'Paket ujian belum memiliki soal aktif. Hubungi admin untuk melengkapi bank soal.');
+        }
+
+        // Section kosong tidak lagi dianggap wajib. Hanya section yang memiliki soal
+        // aktif yang dimasukkan ke sesi ujian dan dinomori ulang secara berurutan.
+        $grade->answers = $answerInsert;
+        $grade->save();
         // }
 
-        $quetions = array_column($grade->answers, 'question_id');
-
-        $duration = $grade->end_time > Carbon::now() || empty($grade->end_time) ? $grade->end_time->diffInMilliseconds(Carbon::now()) : 0;
-
-        return redirect()->route('user.exams.exam-show-questions', [$grade->exam_id, $grade->section, $duration]);
+        return redirect()->route('user.exams.exam-show-questions', [$grade->exam_id, $grade->section]);
     }
 
     public function examShowQuestion($id, $section, Request $request)
     {
-        if(!$this->examService->find($id)) return abort('404', 'uppss....');
+        if (! $this->examService->find($id)) {
+            return abort('404', 'uppss....');
+        }
 
         $exam = $this->examService->find($id);
 
+        if (! $this->learningAccessService->canAccess($request->user(), $exam)) {
+            return redirect()->route('user.categories.exams.show', [$exam->category_id, $exam->id])
+                ->with('error', 'Akses tryout tidak aktif. Silakan periksa transaksi dan aktivasi voucher Anda.');
+        }
+
         $grade = Grade::where('exam_id', $exam->id)->where('user_id', auth()->user()->id)->orderBy('created_at', 'DESC')->first();
+
+        if (! $grade || $grade->is_finished == 1) {
+            return redirect()->route('user.categories.exams.show', [$exam->category_id, $exam->id])
+                ->with('error', 'Sesi ujian tidak aktif. Mulai ujian dari halaman paket.');
+        }
+
+        if (empty($grade->answers)) {
+            return redirect()->route('user.exams.exam-start', $exam->id)
+                ->with('error', 'Sesi ujian kosong dipulihkan dari bank soal terbaru.');
+        }
+
+        $section = (int) $section;
+        if ($section < 1 || $section > (int) $grade->total_section) {
+            return redirect()->route('user.exams.exam-show-questions', [$grade->exam_id, $grade->section]);
+        }
 
         // bisa berkali - kali
         // if($grade->is_finished == 1) {
         //     return redirect()->route('user.categories.exams.show', [$grade->category_id, $grade->exam_id]);
         // }
 
-        if($section != $grade->section && empty($request->nextsection)) {
-            return redirect()->route('user.exams.exam-show-questions', [$grade->exam_id, 1, $grade->section]);
+        if ($section != $grade->section && empty($request->nextsection)) {
+            return redirect()->route('user.exams.exam-show-questions', [$grade->exam_id, $grade->section]);
         }
-
-        $section = $section;
 
         $valueExam = ValueCategoryExam::where(['exam_id' => $exam->id, 'section' => $section])->first();
 
-        if($exam->duration_type == 1) {
+        if ($exam->duration_type == 1) {
             $addMinutes = (int) $exam->duration;
-        } else if($exam->duration_type == 2) {
+        } elseif ($exam->duration_type == 2 && $valueExam) {
             $addMinutes = $valueExam->duration;
+        } elseif ($exam->duration_type == 2) {
+            return redirect()->route('user.categories.exams.show', [$exam->category_id, $exam->id])
+                ->with('error', "Durasi bagian {$section} ujian belum dikonfigurasi oleh admin.");
         } else {
             $addMinutes = 560;
         }
 
-        if($grade->section < $section || $grade->section > $section) {
-            if($grade->section < $section) {
+        if ($grade->section < $section || $grade->section > $section) {
+            if ($grade->section < $section) {
                 $grade->section = $grade->section + 1;
-            } else if($grade->section > $section) {
+            } elseif ($grade->section > $section) {
                 $grade->section = $grade->section - 1;
             }
 
             $grade->number = (int) 0;
-            if($exam->duration_type == 2) {
+            if ($exam->duration_type == 2) {
                 $grade->end_time = Carbon::now()->addMinutes($addMinutes)->addSeconds(2);
             }
             $grade->update();
@@ -282,28 +338,27 @@ class ExamController extends Controller
 
         $gradeAnswers = $grade['answers'];
 
-        usort($gradeAnswers, function($a, $b) {
+        usort($gradeAnswers, function ($a, $b) {
             return $a['section'] <=> $b['section']; // Sort by section in ascending order
         });
 
         $questionListAll = [];
         $questionCount = 0;
 
-        foreach($gradeAnswers as $gradeAnswer) {
+        foreach ($gradeAnswers as $gradeAnswer) {
             $questionListAll[$gradeAnswer['value_category_name']][] = $gradeAnswer;
             $questionCount++;
         }
 
-        $questionLists = array_filter($gradeAnswers, function ($var) use($section) {
-            return ($var['section'] == $section);
+        $questionLists = array_filter($gradeAnswers, function ($var) use ($section) {
+            return $var['section'] == $section;
         });
-        
+
         $questionLists = empty($questionLists) ? [] : array_values($questionLists);
-        
+
         // dd($questionLists);
 
         // dd($questionListAll);
-
 
         $totalQuetions = count($questionLists);
 
@@ -323,14 +378,26 @@ class ExamController extends Controller
     /**
      * answerQuestion
      *
-     * @param  mixed $request
+     * @param  mixed  $request
      * @return void
      */
-    public function answerQuestion(Request $request)
+    public function answerQuestion($examId, Request $request)
     {
-        $grade = Grade::find($request->grade_id);
+        $request->validate([
+            'grade_id' => ['required', 'uuid'],
+            'question_id' => ['required', 'uuid'],
+            'answer' => ['required', 'integer', 'min:1', 'max:5'],
+            'number' => ['required', 'integer', 'min:0'],
+        ]);
+
+        $grade = Grade::query()
+            ->whereKey($request->grade_id)
+            ->where('exam_id', $examId)
+            ->where('user_id', $request->user()->id)
+            ->firstOrFail();
         $gradeAnswers = $grade['answers'];
         $index = array_search($request->question_id, array_column($gradeAnswers, 'question_id'));
+        abort_if($index === false, 404);
 
         $gradeAnswers[$index]['is_correct'] = (int) $gradeAnswers[$index]['question_answer'] == (int) $request->answer ? 'Y' : 'N';
         $gradeAnswers[$index]['answer'] = $request->answer;
@@ -344,14 +411,24 @@ class ExamController extends Controller
     /**
      * answerQuestion
      *
-     * @param  mixed $request
+     * @param  mixed  $request
      * @return void
      */
-    public function audioPlayed(Request $request)
+    public function audioPlayed($examId, Request $request)
     {
-        $grade = Grade::find($request->grade_id);
+        $request->validate([
+            'grade_id' => ['required', 'uuid'],
+            'question_id' => ['required', 'uuid'],
+        ]);
+
+        $grade = Grade::query()
+            ->whereKey($request->grade_id)
+            ->where('exam_id', $examId)
+            ->where('user_id', $request->user()->id)
+            ->firstOrFail();
         $gradeAnswers = $grade['answers'];
         $index = array_search($request->question_id, array_column($gradeAnswers, 'question_id'));
+        abort_if($index === false, 404);
         $gradeAnswers[$index]['audio_played'] = $gradeAnswers[$index]['audio_played'] + 1;
         $gradeAnswers = $gradeAnswers;
         $grade->update(['answers' => $gradeAnswers]);
@@ -362,13 +439,19 @@ class ExamController extends Controller
     /**
      * decrementTolerance
      *
-     * @param  mixed $request
+     * @param  mixed  $request
      * @return void
      */
-    public function decrementTolerance(Request $request)
+    public function decrementTolerance($examId, Request $request)
     {
-        $grade = Grade::find($request->grade_id);
-        $total_tolerance = $grade->total_tolerance > 0 ? $grade->total_tolerance - 1 : 0 ;
+        $request->validate(['grade_id' => ['required', 'uuid']]);
+
+        $grade = Grade::query()
+            ->whereKey($request->grade_id)
+            ->where('exam_id', $examId)
+            ->where('user_id', $request->user()->id)
+            ->firstOrFail();
+        $total_tolerance = $grade->total_tolerance > 0 ? $grade->total_tolerance - 1 : 0;
         $is_blocked = $total_tolerance <= 0 ? 1 : 0;
         $grade->update(['total_tolerance' => $total_tolerance, 'is_blocked' => $is_blocked]);
     }
@@ -376,176 +459,92 @@ class ExamController extends Controller
     /**
      * endExam
      *
-     * @param  mixed $request
+     * @param  mixed  $request
      * @return void
      */
     public function endExam($examId, Request $request)
     {
-        if(!$this->examService->find($examId)) return abort('404', 'uppss....');
+        if (! $this->examService->find($examId)) {
+            return abort('404', 'uppss....');
+        }
 
         $exam = $this->examService->find($examId);
 
         //update nilai di table grades
-        $grade = Grade::find($request->grade_id);
+        $request->validate(['grade_id' => ['required', 'uuid']]);
+
+        $grade = Grade::query()
+            ->whereKey($request->grade_id)
+            ->where('exam_id', $exam->id)
+            ->where('user_id', $request->user()->id)
+            ->firstOrFail();
         $gradeAnswers = $grade['answers'];
 
-        $totalCorrectPerSection = [];
-        for($i = 1; $i <= 3; $i++) {
-            $totalCorrect = array_filter($gradeAnswers, function ($var) use($i) {
-                return ($var['is_correct'] == "Y" && $var['section'] == $i && $var['type'] == 1);
-            });
-
-            $totalCorrectPerSection[] = count($totalCorrect);
-        }
-
-        $totalCorrect = array_filter($gradeAnswers, function ($var) {
-            return ($var['is_correct'] == "Y" && $var['answer'] != 0 && $var['type'] == 1);
-        });
-
-        $totalAnswer = array_filter($gradeAnswers, function ($var) {
-            return ($var['answer'] != 0 && $var['type'] == 1);
-        });
-
-        $totalWrong = array_filter($gradeAnswers, function ($var) {
-            return ($var['is_correct'] == "N" && $var['type'] == 1);
-        });
-
-        $totalQuestionGrade = array_filter($gradeAnswers, function ($var) {
-            return ($var['type'] == 1);
-        });
-
-        $count_correct_answer = count($totalCorrect);
-        $grade_exam = round($count_correct_answer / count($totalQuestionGrade) * 100, 2);
-
-        $grade_exam = 0;
-        $count_correct_answer = count($totalCorrect);
-        
-        if($exam->questionTitle->assessment_type == 3) {
-            foreach($totalCorrect as $correct) {
-                $grade_exam += $correct['correct_point'];
-            }
-        } elseif($exam->questionTitle->assessment_type == 4) {
-            foreach($totalAnswer as $correct) {
-                $grade_exam += $correct['point_'.$correct['answer']];
-            }
-        } else {
-            $grade_exam = round($count_correct_answer / count($totalQuestionGrade) * 100, 2);
-        }
+        $overallScore = $this->examScoringService->calculateOverall(
+            $gradeAnswers,
+            (int) $exam->questionTitle->assessment_type,
+        );
+        $previousGrade = (float) str_replace(',', '', (string) $grade->grade_old);
+        $usesCategoryScoring = (int) $exam->questionTitle->add_value_category === 1
+            && (int) $exam->questionTitle->assessment_type === 1;
+        $overallGrade = $grade->is_blocked == 1 ? 0 : $overallScore['score'];
 
         $grade->end_time = Carbon::now();
-        $grade->total_correct = $count_correct_answer;
+        $grade->total_correct = $overallScore['total_correct'];
+        $grade->grade = $overallGrade;
+        if (! $usesCategoryScoring && $previousGrade <= 0) {
+            $grade->grade_old = $overallGrade;
+        }
         $grade->is_finished = 1;
         $grade->update();
 
         $valueCategories = ValueCategory::where('category_id', $exam->category_id)->orderBy('section', 'ASC')->get();
 
-        if($exam->questionTitle->add_value_category == 1 && ($exam->questionTitle->assessment_type == 1)) {
-            $grades = [];
-
-            foreach($valueCategories as $index => $valueCategory) {
-                if($exam->questionTitle->assessment_type == 1) {
-                    $totalCorrect = array_filter($gradeAnswers, function ($var) use($valueCategory) {
-                        return ($var['value_category_id'] == $valueCategory->id && $var['is_correct'] == "Y" && $var['type'] == 1 && $var['option_has_point'] == 0);
-                    });
-
-                    $totalWrong = array_filter($gradeAnswers, function ($var) use($valueCategory) {
-                        return ($var['value_category_id'] == $valueCategory->id && $var['is_correct'] == "N" && $var['type'] == 1 && $var['option_has_point'] == 0);
-                    });
-
-                    $optionsHasPoint = array_filter($gradeAnswers, function ($var) use($valueCategory) {
-                        return ($var['value_category_id'] == $valueCategory->id && $var['type'] == 1 && $var['option_has_point'] == 1);
-                    });
-
-                    // hitung jawaban dengan poin
-                    if (count($optionsHasPoint) > 0) {
-                        $totalCorrect = 0;
-                        $totalWrong = 0;
-                        foreach($optionsHasPoint as $optionHasPoint) {
-                            if ($optionHasPoint['answer'] != 0) {
-                                $totalCorrect += $optionHasPoint['option_'.$optionHasPoint['answer'].'_point'];
-                                $totalWrong += 5 - $optionHasPoint['option_'.$optionHasPoint['answer'].'_point'];
-                            }
-                        }
-                    }
-                }
-
-                if (is_array($totalCorrect)) {
-                    $totalCorrectFinal = count($totalCorrect);
-                    $totalWrongFinal = count($totalWrong);
-                } else {
-                    $totalCorrectFinal = $totalCorrect;
-                    $totalWrongFinal = $totalWrong;
-                }
-
-                $totalQuestion = (int) $totalCorrectFinal + (int) $totalWrongFinal;
-
-                $grades[] = [
-                    'category_id' => $exam->category_id,
-                    'lesson_category_id' => $exam->lesson_category_id,
-                    'lesson_id' => $exam->lesson_id,
-                    'exam_id' => $exam->id,
-                    'total_correct' => $totalCorrectFinal,
-                    'total_wrong' => $totalWrongFinal,
-                    'value_category_id' => $valueCategory->id,
-                    'value_category_name' => $valueCategory->name,
-                    'value_category_assessment_type' => $valueCategory->assessment_type,
-                ];
-
-                if($valueCategory->assessment_type == 1) {
-                    $grades[$index]['grade'] =($totalCorrectFinal / $totalQuestion) * 100;
-                }
-
-                if($valueCategory->assessment_type == 2) {
-                    $grades[$index]['grade'] = $totalCorrectFinal;
-                }
-            }
-
+        if ($usesCategoryScoring) {
             $result = [];
-
             $finalGradeExam = 0;
 
-            // grades per section
-            foreach($grades as $gradeData) {
-                $detailValueCategories = DetailValueCategory::where('value_category_id', $gradeData['value_category_id'])->get();
-                $finalGrade = 0;
-                foreach($detailValueCategories as $detailValueCategory) {
-                    // if($gradeData['grade'] >= $detailValueCategory->min_grade && $gradeData['grade'] <= $detailValueCategory->max_grade) {
-                    //     $finalGrade = $detailValueCategory->final_grade;
-                    // }
+            foreach ($valueCategories as $valueCategory) {
+                $categoryScore = $this->examScoringService->calculateCategory($gradeAnswers, $valueCategory);
+                $finalGrade = $categoryScore['score'];
 
-                    // jika min dan max sama dengan final maka gunakan perhitungan ini
-                    if(($detailValueCategory->min_grade == $detailValueCategory->max_grade) && ($detailValueCategory->max_grade == $detailValueCategory->final_grade)) {
-                        $finalGrade = $gradeData['total_correct'] * $detailValueCategory->final_grade;
-                    // jika grade rentang atau jawaban yang memiliki point
-                    } else {
-                        $finalGrade = $gradeData['total_correct'];
-                    }
+                $conversion = DetailValueCategory::query()
+                    ->where('value_category_id', $valueCategory->id)
+                    ->where('min_grade', '<=', $categoryScore['total_correct'])
+                    ->where('max_grade', '>=', $categoryScore['total_correct'])
+                    ->first();
+
+                if ($conversion) {
+                    $finalGrade = (float) $conversion->final_grade;
                 }
 
                 $result[] = [
                     'created_at' => Carbon::now(),
                     'updated_at' => Carbon::now(),
-                    'category_id' => $gradeData['category_id'],
-                    'exam_id' => $gradeData['exam_id'],
+                    'category_id' => $exam->category_id,
+                    'exam_id' => $exam->id,
                     'user_id' => auth()->user()->id,
-                    'value_category_id' => $gradeData['value_category_id'],
+                    'value_category_id' => $valueCategory->id,
                     'grade_id' => $grade->id,
-                    'total_correct' => $grade->is_blocked == 1 ? 0 : $gradeData['total_correct'],
-                    'total_wrong' => $grade->is_blocked == 1 ? 0 : $gradeData['total_wrong'],
+                    'total_correct' => $grade->is_blocked == 1 ? 0 : $categoryScore['total_correct'],
+                    'total_wrong' => $grade->is_blocked == 1 ? 0 : $categoryScore['total_wrong'],
                     'grade' => $grade->is_blocked == 1 ? 0 : $finalGrade,
                 ];
 
                 $finalGradeExam += $grade->is_blocked == 1 ? 0 : $finalGrade;
             }
 
-            if($grade->category_id == "f968e7a3-74ed-4090-b9bc-99e7c36f2a69") {
+            if (strtoupper((string) $exam->category?->name) === 'TOEFL' && $valueCategories->count() > 0) {
                 $finalGradeExam = round(($finalGradeExam / 3) * 10);
             }
 
+            GradeDetail::where('grade_id', $grade->id)->delete();
             GradeDetail::insert($result);
 
             $grade->grade = $finalGradeExam;
-            $grade->grade_old = empty($grade->grade_old) ? $finalGradeExam : $grade->grade_old;
+            if ($previousGrade <= 0) {
+                $grade->grade_old = $finalGradeExam;
+            }
             $grade->update();
         }
 

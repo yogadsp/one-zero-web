@@ -54,7 +54,7 @@ class ActivationController extends Controller
             $namePassword = explode(" ", $student->user->name);
             $newPassword = strtolower($namePassword[0]).mt_rand(10000, 99999);
 
-            $message = "*Mohon dibaca dan dipahami!*\n\n_Hallo, saya admin dari e-TOEFL, berikut permintaan perubahan password untuk akun anda._\n\nNama: ".$user->name."\nEmail: ".$user->email."\nPassword Baru: ".$newPassword."\n\n*Mohon diperhatikan untuk penulisan email dan password baik itu huruf besar atau kecilnya, karena itu sangat berpengaruh untuk login, ingat dan simpan supaya tidak lupa.*\n\n_terimakasih_";
+            $message = "*Mohon dibaca dan dipahami!*\n\n_Halo, saya admin One Zero Learning. Berikut permintaan perubahan password untuk akun Anda._\n\nNama: ".$user->name."\nEmail: ".$user->email."\nPassword Baru: ".$newPassword."\n\n*Perhatikan huruf besar dan kecil saat menulis email serta password. Simpan kredensial ini dengan aman.*\n\n_Terima kasih._";
             sendWhatsappNotification($user->student->phone_number, $message);
 
             $user->update([

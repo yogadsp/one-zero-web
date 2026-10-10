@@ -25,11 +25,12 @@ Route::get('/', function () {
     return view('welcome');
 })->name('home');
 
-Route::post('upload', '\App\Http\Controllers\Admin\DashboardController@upload')->name('upload');
-Route::post('upload/announcement', '\App\Http\Controllers\Admin\DashboardController@uploadAnnouncement')->name('upload');
+Route::post('upload/announcement', '\App\Http\Controllers\Admin\DashboardController@uploadAnnouncement')->name('upload.announcement');
 
 // admin site
 Route::group(['middleware' => ['auth', 'admin', 'accountIsActive']], function () {
+    Route::post('upload', '\App\Http\Controllers\Admin\DashboardController@upload')->name('upload');
+
     Route::group(['prefix' => 'admin', 'namespace' => '\App\Http\Controllers\Admin', 'as' => 'admin.'], function () {
         // dashboard
         Route::get('/dashboard', 'DashboardController@index')->name('admin.dashboard');
@@ -56,6 +57,14 @@ Route::group(['middleware' => ['auth', 'admin', 'accountIsActive']], function ()
             // question itles
             Route::resource('question-titles', 'QuestionTitleController')->except(['show']);
             // questions
+            Route::get('question-titles/{questionTitleId}/questions/import', 'QuestionImportController@create')
+                ->name('question-titles.questions.import');
+            Route::get('question-titles/{questionTitleId}/questions/import/template', 'QuestionImportController@template')
+                ->name('question-titles.questions.import.template');
+            Route::post('question-titles/{questionTitleId}/questions/import/preview', 'QuestionImportController@preview')
+                ->name('question-titles.questions.import.preview');
+            Route::post('question-titles/{questionTitleId}/questions/import', 'QuestionImportController@store')
+                ->name('question-titles.questions.import.store');
             Route::resource('question-titles.questions', 'QuestionController');
         });
 
@@ -74,6 +83,8 @@ Route::group(['middleware' => ['auth', 'admin', 'accountIsActive']], function ()
             Route::get('transactions/{transaction}/invoice', 'TransactionController@invoice')->name('transactions.invoice');
         });
 
+        Route::resource('learning-materials', 'LearningMaterialController')->only(['index', 'store', 'update', 'destroy']);
+
         Route::group(['namespace' => 'Exam'], function () {
             // vouchers
             Route::resource('exams', 'ExamController');
@@ -87,6 +98,15 @@ Route::group(['middleware' => ['auth', 'accountIsActive']], function () {
     Route::group(['prefix' => 'user', 'namespace' => '\App\Http\Controllers\User', 'as' => 'user.'], function () {
         // dashboard
         Route::get('/dashboard', 'DashboardController')->name('user.dashboard');
+
+        Route::get('/learning', 'LearningController@index')->name('learning.index');
+        Route::get('/my-learning-packages', 'LearningController@myPackages')->name('learning.my-packages');
+        Route::get('/learning/packages/{id}', 'LearningController@showLegacyPackage')->name('learning.legacy-package');
+        Route::get('/learning/{type}/{id}', 'LearningController@show')
+            ->whereIn('type', ['tryout', 'video', 'live_class'])
+            ->name('learning.show');
+        Route::get('/learning-materials/{learningMaterial}/open', 'LearningController@openMaterial')->name('learning-materials.open');
+        Route::get('/learning-materials/{learningMaterial}/embed', 'LearningController@embedMaterial')->name('learning-materials.embed');
 
         // announcements
         Route::resource('/announcements', 'AnnouncementController')->only(['index', 'show']);
@@ -118,8 +138,10 @@ Route::group(['middleware' => ['auth', 'accountIsActive']], function () {
 
         Route::group(['namespace' => 'Transaction'], function () {
             // transaction
-            Route::resource('/transactions', 'TransactionController')->only(['index', 'show']);
-            Route::get('/transactions/exams/{id}/buy', 'TransactionController@buy')->name('transactions.buy');
+            Route::resource('/transactions', 'TransactionController')->only(['index', 'show', 'destroy']);
+            Route::post('/transactions/exams/{id}/buy', 'TransactionController@buy')->name('transactions.buy');
+            Route::post('/transactions/learning-materials/{id}/buy', 'TransactionController@buyLearningMaterial')
+                ->name('transactions.buy-learning-material');
 
             // voucher activations
             Route::resource('/voucher-activations', 'VoucherActivationController')->only(['index', 'store']);
@@ -141,5 +163,6 @@ Route::get('user/forgot-password', '\App\Http\Controllers\ActivationController@f
 Route::post('user/forgot-password', '\App\Http\Controllers\ActivationController@storeForgotPassword');
 Route::get('/symlink', function () {
     Artisan::call('storage:link');
+
     return "Symlink berhasil dibuat";
 });

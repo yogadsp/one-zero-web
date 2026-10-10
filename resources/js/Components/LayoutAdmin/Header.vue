@@ -15,7 +15,7 @@
                         </div>
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end">
-                        <li><Link class="dropdown-item" href="/admin/dashboard"><i class='bx bx-home-circle'></i><span>Dashboard</span></Link> </li>
+                        <li><Link class="dropdown-item" :href="homeUrl"><i class='bx bx-home-circle'></i><span>Beranda</span></Link> </li>
                         <li><div class="dropdown-divider mb-0"></div> </li>
                         <li><Link class="dropdown-item" href="/logout" method="POST" as="button"><i class='bx bx-log-out-circle'></i><span>Logout</span></Link></li>
                     </ul>
@@ -31,8 +31,11 @@
 
     export default {
         // register component
-        components: {
-            Link
+        components: { Link },
+        computed: {
+            homeUrl() {
+                return Number(this.$page.props.auth.user.level) === 1 ? '/admin/dashboard' : '/user/dashboard';
+            }
         }
     }
 </script>

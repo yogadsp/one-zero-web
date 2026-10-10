@@ -13,19 +13,19 @@
                 <form @submit.prevent="submit" class="row g-3">
                   <div class="p-5">
                     <center>
-                      <img v-bind:src="'/storage/upload_files/img/' + logo" />
-                      <h4 class="mt-5 font-weight-bold">Login</h4>
+                      <img src="/assets/images/logo.png" alt="One Zero Akademi" style="max-height: 80px; width: auto;" />
+                      <h4 class="mt-4 font-weight-bold">Login</h4>
                     </center>
                     <p class="text-muted">Silakan login dengan email dan password yang sudah anda daftarkan.</p>
                     <div class="mb-3 mt-0">
                       <div v-if="$page.props.session.error" class="alert alert-danger border-0">
                         <i class="fa fa-exclamation-triangle"></i>
-                        <div v-html="$page.props.session.error"></div>
+                        <div>{{ $page.props.session.error }}</div>
                       </div>
 
                       <div v-if="$page.props.session.success" class="alert alert-success border-0">
                         <i class="fa fa-exclamation-triangle"></i>
-                        <div v-html="$page.props.session.success"></div>
+                        <div>{{ $page.props.session.success }}</div>
                       </div>
                     </div>
                     <div class="mb-3 mt-0">
@@ -99,10 +99,6 @@ export default {
     session: Object,
   },
 
-  data: {
-    logo: "logo.png",
-  },
-
   setup() {
     const form = reactive({
       email: "",
@@ -124,7 +120,6 @@ export default {
         },
         {
           onFinish: () => {
-            console.log("onFinish");
             isLoading.value = false; // matikan loading setelah selesai
           },
         }

@@ -61,4 +61,14 @@ class Exam extends Model
         return $this->hasMany(\App\Models\Transaction\Transaction::class)->where(['transaction_status' => 'done', 'user_id' => Auth::user()->id]);
     }
 
+    public function transactions()
+    {
+        return $this->hasMany(\App\Models\Transaction\Transaction::class);
+    }
+
+    public function learningMaterials()
+    {
+        return $this->hasMany(\App\Models\Learning\LearningMaterial::class);
+    }
+
 }

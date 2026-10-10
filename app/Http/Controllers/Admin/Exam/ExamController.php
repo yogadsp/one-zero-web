@@ -3,16 +3,19 @@
 namespace App\Http\Controllers\Admin\Exam;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Services\Contracts\Exam\ExamInterface as ExamService;
-use App\Services\Contracts\MasterData\CategoryInterface as CategoryService;
-use App\Services\Contracts\Exam\GradeInterface as GradeService;
 use App\Http\Requests\Exam\ExamRequest;
 use App\Models\Exam\ValueCategoryExam;
+use App\Services\Contracts\Exam\ExamInterface as ExamService;
+use App\Services\Contracts\Exam\GradeInterface as GradeService;
+use App\Services\Contracts\MasterData\CategoryInterface as CategoryService;
+use App\Services\Exam\ExamProgramProfileService;
+use Illuminate\Http\Request;
 
 class ExamController extends Controller
 {
-    protected $examService, $categoryService;
+    protected $examService;
+
+    protected $categoryService;
 
     public function __construct(GradeService $gradeService, ExamService $examService, CategoryService $categoryService)
     {
@@ -29,7 +32,7 @@ class ExamController extends Controller
     public function index(Request $request)
     {
         return inertia('Admin/Exam/Exam/Index', [
-            'exams' => $this->examService->getAllPaginatedWithParams($request)
+            'exams' => $this->examService->getAllPaginatedWithParams($request),
         ]);
     }
 
@@ -38,10 +41,13 @@ class ExamController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function create()
+    public function create(ExamProgramProfileService $profileService)
     {
+        $categories = $this->categoryService->all();
+
         return inertia('Admin/Exam/Exam/Create')->with([
-            'categories' => $this->categoryService->all()
+            'categories' => $categories,
+            'programProfiles' => $profileService->profilesFor($categories),
         ]);
     }
 
@@ -54,17 +60,17 @@ class ExamController extends Controller
     public function store(ExamRequest $request)
     {
         try {
-            #store
+            //store
             $this->examService->create($request);
 
-            #Bump....
+            //Bump....
             return redirect()->route('admin.exams.index');
 
-        } catch(\Exception $e) {
-            #get message
-            session()->flash('failed', $e->getMessage() . ' in file :'.$e->getFile() .' line: '. $e->getLine());
+        } catch (\Exception $e) {
+            //get message
+            session()->flash('failed', $e->getMessage().' in file :'.$e->getFile().' line: '.$e->getLine());
 
-            #redirect
+            //redirect
             return redirect()->back()->withInput($request->all());
         }
     }
@@ -77,7 +83,9 @@ class ExamController extends Controller
      */
     public function show($id)
     {
-        if(!$this->examService->find($id)) return abort('404', 'uppss....');
+        if (! $this->examService->find($id)) {
+            return abort('404', 'uppss....');
+        }
 
         $exam = $this->examService->find($id);
         $rangkingExams = $this->gradeService->getRankingByExam($exam->id);
@@ -94,17 +102,22 @@ class ExamController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function edit($id)
+    public function edit($id, ExamProgramProfileService $profileService)
     {
-        if(!$this->examService->find($id)) return abort('404', 'uppss....');
+        if (! $this->examService->find($id)) {
+            return abort('404', 'uppss....');
+        }
 
         $exam = $this->examService->find($id);
 
         $duration_section = ValueCategoryExam::where('exam_id', $exam->id)->orderBy('index', 'ASC')->pluck('duration');
 
+        $categories = $this->categoryService->all();
+
         return inertia('Admin/Exam/Exam/Edit', [
             'exam' => $exam,
-            'categories' => $this->categoryService->all(),
+            'categories' => $categories,
+            'programProfiles' => $profileService->profilesFor($categories),
             'duration_section' => $duration_section,
         ]);
     }
@@ -119,19 +132,21 @@ class ExamController extends Controller
     public function update(ExamRequest $request, $id)
     {
         try {
-            if(!$this->examService->find($id)) return abort('404', 'uppss....');
+            if (! $this->examService->find($id)) {
+                return abort('404', 'uppss....');
+            }
 
-            #update
+            //update
             $this->examService->update($request, $id);
 
-            #Bump....
+            //Bump....
             return redirect()->route('admin.exams.index');
 
-        } catch(\Exception $e) {
-            #get message
-            session()->flash('failed', $e->getMessage() . ' in file :'.$e->getFile() .' line: '. $e->getLine());
+        } catch (\Exception $e) {
+            //get message
+            session()->flash('failed', $e->getMessage().' in file :'.$e->getFile().' line: '.$e->getLine());
 
-            #redirect
+            //redirect
             return redirect()->back()->withInput($request->all());
         }
     }
@@ -145,17 +160,17 @@ class ExamController extends Controller
     public function destroy($id)
     {
         try {
-            #delete
+            //delete
             $this->examService->delete($id);
 
-            #Bump....
+            //Bump....
             return redirect()->route('admin.exams.index');
 
-        } catch(\Exception $e) {
-            #get message
-            session()->flash('failed', $e->getMessage() . ' in file :'.$e->getFile() .' line: '. $e->getLine());
+        } catch (\Exception $e) {
+            //get message
+            session()->flash('failed', $e->getMessage().' in file :'.$e->getFile().' line: '.$e->getLine());
 
-            #redirect
+            //redirect
             return redirect()->back()->withInput($request->all());
         }
     }

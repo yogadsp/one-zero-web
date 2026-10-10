@@ -23,11 +23,11 @@
             <div class="card">
                 <div class="card-body">
                     <div v-if="$page.props.session.error" class="alert alert-danger border-0">
-                        <i class="fa fa-exclamation-triangle"></i><div v-html="$page.props.session.error"></div>
+                        <i class="fa fa-exclamation-triangle"></i><span>{{ $page.props.session.error }}</span>
                     </div>
 
                     <div v-if="$page.props.session.success" class="alert alert-success border-0">
-                        <i class="fa fa-exclamation-triangle"></i><div v-html="$page.props.session.success"></div>
+                        <i class="fa fa-check-circle"></i><span>{{ $page.props.session.success }}</span>
                     </div>
 
                     <div class="input-group">
@@ -46,22 +46,24 @@
                                 <tr>
                                     <th>No</th>
                                     <th>Kategori</th>
-                                    <th>Judul Ujian</th>
+                                    <th>Produk</th>
                                     <th>Token</th>
                                     <th>Aksi</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr v-if="!voucherActivations.data.length">
+                                <tr v-if="!voucherActivations?.data?.length">
                                     <td colspan="7" align="center">Belum ada data riwayat aktivasi</td>
                                 </tr>
-                                <tr v-for="(voucherActivation, index) in voucherActivations.data" :key="index">
+                                <tr v-for="(voucherActivation, index) in (voucherActivations?.data || [])" :key="index">
                                     <td>{{ ++index + (voucherActivations.current_page - 1) * voucherActivations.per_page }}</td>
-                                    <td>{{ voucherActivation.exam.category.name }}</td>
-                                    <td>{{ voucherActivation.exam.title }}</td>
+                                    <td>{{ voucherActivation.product_category_name }}</td>
+                                    <td>{{ voucherActivation.product_title }}</td>
                                     <td>{{ voucherActivation.voucher_token }}</td>
                                     <td>
-                                        <Link :href="`/user/categories/${voucherActivation.exam.category.id}/exams/${voucherActivation.exam_id}`" class="btn btn-primary btn-sm">Kerjakan Soal</Link>
+                                        <Link v-if="voucherActivation.product_type === 'tryout' && voucherActivation.exam?.category?.id" :href="`/user/categories/${voucherActivation.exam.category.id}/exams/${voucherActivation.exam_id}`" class="btn btn-primary btn-sm">Buka Tryout</Link>
+                                        <Link v-else-if="voucherActivation.product_type !== 'tryout' && voucherActivation.learning_material_id" :href="`/user/learning/${voucherActivation.product_type}/${voucherActivation.learning_material_id}`" class="btn btn-primary btn-sm">Buka Produk</Link>
+                                        <span v-else class="text-muted">Produk tidak tersedia</span>
                                     </td>        
                                 </tr>
                             </tbody>

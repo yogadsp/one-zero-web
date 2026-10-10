@@ -6,7 +6,7 @@
 					<img src="/assets/images/logo-icon.png" class="logo-icon" alt="logo icon">
 				</div>
 				<div>
-					<h4 class="logo-text">Rocker</h4>
+					<h4 class="logo-text">One Zero</h4>
 				</div>
 				<div class="toggle-icon ms-auto"><i class='bx bx-arrow-to-left'></i>
 				</div>
@@ -42,11 +42,6 @@
                         <li>
                             <Link href="/admin/users">
                                <i class="bx bx-right-arrow-alt"></i>User
-					        </Link>
-                        </li>
-                        <li>
-                            <Link href="/admin/students">
-                               <i class="bx bx-right-arrow-alt"></i>Calon Siswa
 					        </Link>
                         </li>
 					</ul>
@@ -174,7 +169,7 @@
 					</Link>
 				</li>
                 <li>
-					<Link href="users/voucher-activation">
+					<Link href="/user/voucher-activations">
 						<div class="parent-icon"><i class='bx bx-outline'></i>
 						</div>
 						<div class="menu-title">Aktivasi Voucher</div>

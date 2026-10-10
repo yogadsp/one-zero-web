@@ -2,17 +2,21 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Charts\VisitorCounterChart;
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Carbon\Carbon;
+use App\Http\Requests\EditorImageUploadRequest;
+use App\Services\Content\EditorImageStorageService;
 use App\Services\Contracts\Transaction\TransactionInterface as TransactionService;
 use App\Services\Contracts\User\UserInterface as UserService;
 use ArielMejiaDev\LarapexCharts\LarapexChart;
-use App\Charts\VisitorCounterChart;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
-    protected $transactionService, $userService;
+    protected $transactionService;
+
+    protected $userService;
 
     public function __construct(TransactionService $transactionService, UserService $userService)
     {
@@ -23,7 +27,6 @@ class DashboardController extends Controller
     /**
      * Handle the incoming request.
      *
-     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
     public function index(Request $request)
@@ -50,17 +53,18 @@ class DashboardController extends Controller
         ]);
     }
 
-    public function upload(Request $request)
+    public function upload(EditorImageUploadRequest $request, EditorImageStorageService $imageStorage)
     {
-        $fileName = Carbon::now()->format('Ymdhis').$request->file('file')->getClientOriginalName();
-        $path = $request->file('file')->storeAs('/upload_files/questions', $fileName, 'public');
-        return response()->json(['location' => "/storage/$path"]);
+        return response()->json([
+            'location' => $imageStorage->storeTemporarily($request->file('file'), $request->user()->getAuthIdentifier()),
+        ]);
     }
 
     public function uploadAnnouncement(Request $request)
     {
         $fileName = Carbon::now()->format('Ymdhis').$request->file('file')->getClientOriginalName();
         $path = $request->file('file')->storeAs('/upload_files/announcements', $fileName, 'public');
+
         return response()->json(['location' => "/storage/$path"]);
     }
 }

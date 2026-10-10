@@ -3,14 +3,17 @@
 namespace App\Http\Controllers\Admin\Lesson;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Http\Requests\Lesson\ValueCategoryRequest;
 use App\Services\Contracts\Lesson\ValueCategoryInterface as ValueCategoryService;
 use App\Services\Contracts\MasterData\CategoryInterface as CategoryService;
-use App\Http\Requests\Lesson\ValueCategoryRequest;
+use App\Services\Exam\ExamProgramProfileService;
+use Illuminate\Http\Request;
 
 class ValueCategoryController extends Controller
 {
-    protected $valueCategoryService, $categoryService;
+    protected $valueCategoryService;
+
+    protected $categoryService;
 
     public function __construct(ValueCategoryService $valueCategoryService, CategoryService $categoryService)
     {
@@ -26,7 +29,7 @@ class ValueCategoryController extends Controller
     public function index(Request $request)
     {
         return inertia('Admin/Lesson/ValueCategory/Index', [
-            'valueCategories' => $this->valueCategoryService->getAllPaginatedWithParams($request)
+            'valueCategories' => $this->valueCategoryService->getAllPaginatedWithParams($request),
         ]);
     }
 
@@ -35,10 +38,13 @@ class ValueCategoryController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function create()
+    public function create(ExamProgramProfileService $profileService)
     {
+        $categories = $this->categoryService->all();
+
         return inertia('Admin/Lesson/ValueCategory/Create', [
-            'categories' => $this->categoryService->all()
+            'categories' => $categories,
+            'programProfiles' => $profileService->profilesFor($categories),
         ]);
     }
 
@@ -51,17 +57,17 @@ class ValueCategoryController extends Controller
     public function store(ValueCategoryRequest $request)
     {
         try {
-            #store
+            //store
             $this->valueCategoryService->create($request);
 
-            #Bump....
+            //Bump....
             return redirect()->route('admin.value-categories.index');
 
-        } catch(\Exception $e) {
-            #get message
-            session()->flash('failed', $e->getMessage() . ' in file :'.$e->getFile() .' line: '. $e->getLine());
+        } catch (\Exception $e) {
+            //get message
+            session()->flash('failed', $e->getMessage().' in file :'.$e->getFile().' line: '.$e->getLine());
 
-            #redirect
+            //redirect
             return redirect()->back()->withInput($request->all());
         }
     }
@@ -72,13 +78,18 @@ class ValueCategoryController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function edit($id)
+    public function edit($id, ExamProgramProfileService $profileService)
     {
-        if(!$this->valueCategoryService->find($id)) return abort('404', 'uppss....');
+        if (! $this->valueCategoryService->find($id)) {
+            return abort('404', 'uppss....');
+        }
+
+        $categories = $this->categoryService->all();
 
         return inertia('Admin/Lesson/ValueCategory/Edit', [
             'valueCategory' => $this->valueCategoryService->find($id),
-            'categories' => $this->categoryService->all(),
+            'categories' => $categories,
+            'programProfiles' => $profileService->profilesFor($categories),
         ]);
     }
 
@@ -92,19 +103,21 @@ class ValueCategoryController extends Controller
     public function update(ValueCategoryRequest $request, $id)
     {
         try {
-            if(!$this->valueCategoryService->find($id)) return abort('404', 'uppss....');
+            if (! $this->valueCategoryService->find($id)) {
+                return abort('404', 'uppss....');
+            }
 
-            #update
+            //update
             $this->valueCategoryService->update($request, $id);
 
-            #Bump....
+            //Bump....
             return redirect()->route('admin.value-categories.index');
 
-        } catch(\Exception $e) {
-            #get message
-            session()->flash('failed', $e->getMessage() . ' in file :'.$e->getFile() .' line: '. $e->getLine());
+        } catch (\Exception $e) {
+            //get message
+            session()->flash('failed', $e->getMessage().' in file :'.$e->getFile().' line: '.$e->getLine());
 
-            #redirect
+            //redirect
             return redirect()->back()->withInput($request->all());
         }
     }
@@ -118,17 +131,17 @@ class ValueCategoryController extends Controller
     public function destroy($id)
     {
         try {
-            #delete
+            //delete
             $this->valueCategoryService->delete($id);
 
-            #Bump....
+            //Bump....
             return redirect()->route('admin.value-categories.index');
 
-        } catch(\Exception $e) {
-            #get message
-            session()->flash('failed', $e->getMessage() . ' in file :'.$e->getFile() .' line: '. $e->getLine());
+        } catch (\Exception $e) {
+            //get message
+            session()->flash('failed', $e->getMessage().' in file :'.$e->getFile().' line: '.$e->getLine());
 
-            #redirect
+            //redirect
             return redirect()->back()->withInput($request->all());
         }
     }

@@ -91,7 +91,7 @@
 											<tr>
 												<td class="no">01</td>
 												<td class="text-left">
-													Pembelian {{ transaction.exam.title }}
+											Pembelian {{ transaction.product_title }}
                                                 </td>
 												<td class="unit">{{ formatPrice(transaction.total_purchases)  }}</td>
 												<td class="qty">{{ formatPrice(0)  }}</td>

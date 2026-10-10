@@ -2,13 +2,19 @@
 
 namespace App\Models\Lesson;
 
+use App\Traits\Uuid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use App\Traits\Uuid;
 
 class ValueCategory extends Model
 {
+    public const ASSESSMENT_PERCENTAGE = 1;
+
+    public const ASSESSMENT_CORRECT_COUNT = 2;
+
+    public const ASSESSMENT_OPTION_POINTS = 3;
+
     use HasFactory,SoftDeletes,Uuid;
 
     public $incrementing = false;
@@ -20,7 +26,7 @@ class ValueCategory extends Model
         'category_id',
         'name',
         'assessment_type',
-        'section'
+        'section',
     ];
 
     protected $casts = [

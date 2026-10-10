@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Lesson;
 
+use App\Services\Exam\ExamProgramProfileService;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class ValueCategoryRequest extends FormRequest
 {
@@ -23,11 +25,22 @@ class ValueCategoryRequest extends FormRequest
      */
     public function rules()
     {
+        $profileService = app(ExamProgramProfileService::class);
+        $categoryId = $this->input('category_id');
+
         return [
-            'category_id' => 'required',
-            'name' => 'required|string|max:191',
-            'assessment_type' => 'required',
-            'section' => 'required',
+            'category_id' => ['required', 'uuid', 'exists:categories,id'],
+            'name' => ['required', 'string', 'max:191'],
+            'assessment_type' => ['required', 'integer', Rule::in($profileService->allowedValueAssessmentTypes($categoryId))],
+            'section' => [
+                'required',
+                'integer',
+                'min:1',
+                'max:100',
+                Rule::unique('value_categories', 'section')
+                    ->where(fn ($query) => $query->where('category_id', $categoryId)->whereNull('deleted_at'))
+                    ->ignore($this->route('value_category')),
+            ],
         ];
     }
 

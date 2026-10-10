@@ -159,7 +159,7 @@ class UserController extends Controller
 
         $user = $this->userService->find($id);
 
-        $message = "*Mohon dibaca dan dipahami!*\n\n_Hallo, saya admin dari e-TOEFL, akun anda telah terdaftar di platform kami, berikut akun anda._\n\nNama: ".$user->name."\nEmail: ".$user->email."\n\n*saat ini anda belum mengaktifkan akun anda, apakah ada kendala ketika aktivasi ? atau belum mendapatkan link aktivasi ?*\n\n *jika tidak diaktivasi maka dalam jangka waktu lama akun akan terhapus secara otomatis.*\n\n_terimakasih telah menjadi bagian dari kami, semoga e-TOEFL dapat membantu proses belajar anda. aamiin._";
+        $message = "*Mohon dibaca dan dipahami!*\n\n_Halo, saya admin One Zero Learning. Akun Anda telah terdaftar di platform kami._\n\nNama: ".$user->name."\nEmail: ".$user->email."\n\n*Saat ini akun Anda belum aktif. Apakah ada kendala saat aktivasi atau Anda belum menerima tautan aktivasi?*\n\n*Jika tidak diaktivasi, akun yang tidak aktif dapat dibersihkan sesuai kebijakan layanan.*\n\n_Terima kasih telah menjadi bagian dari One Zero Learning._";
         
         sendWhatsappNotification($user->student->phone_number, $message);    
 
@@ -172,7 +172,7 @@ class UserController extends Controller
 
         $user = $this->userService->find($id);
 
-        $message = "*Mohon dibaca dan dipahami!*\n\n_Hallo, saya admin dari e-TOEFL, akun anda telah terdaftar di platform kami, berikut akun anda._\n\nNama: ".$user->name."\nEmail: ".$user->email."\n\nsaat ini anda belum mengaktifkan member anda, yuk ambil kesempatan karena ada voucher member gratis untuk anda jika masih bingung, silakan lihat panduan berikut ini.\n\nPanduan Penggunaan Web:\nbit.ly/panduan-etoefl\n\nPanduan Pengerjaan Soal:\nbit.ly/panduan-soal-etoefl\n\n_terimakasih telah menjadi bagian dari kami, semoga e-TOEFL dapat membantu proses belajar anda. aamiin._";
+        $message = "*Mohon dibaca dan dipahami!*\n\n_Halo, saya admin One Zero Learning. Akun Anda telah terdaftar di platform kami._\n\nNama: ".$user->name."\nEmail: ".$user->email."\n\nSaat ini akses belajar Anda belum aktif. Silakan hubungi admin apabila belum menerima voucher atau mengalami kendala aktivasi.\n\n_Terima kasih telah menjadi bagian dari One Zero Learning._";
         
         sendWhatsappNotification($user->student->phone_number, $message);    
 

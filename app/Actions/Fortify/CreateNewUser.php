@@ -75,7 +75,7 @@ class CreateNewUser implements CreatesNewUsers
             'is_member' => 1,
         ]);
           
-        $message = "*Mohon dibaca dan dipahami!*\n\n_Hallo, saya admin dari e-TOEFL, akun anda telah terdaftar di platform kami, berikut link untuk aktivasi akun anda._\n\nNama: ".$user->name."\nEmail: ".$user->email."\n\nBerikut link verifikasi anda\n".env('APP_URL')."/user/".$user->id."/activation \n\n*Jika link tidak bisa diklik, silakan copy dan paste dibrowser anda.*\n\n_terimakasih telah menjadi bagian dari kami, semoga e-TOEFL dapat membantu proses belajar anda. aamiin._";
+        $message = "*Mohon dibaca dan dipahami!*\n\n_Halo, saya admin One Zero Learning. Akun Anda telah terdaftar, berikut tautan aktivasinya._\n\nNama: ".$user->name."\nEmail: ".$user->email."\n\nTautan verifikasi\n".env('APP_URL')."/user/".$user->id."/activation \n\n*Jika tautan tidak bisa diklik, silakan salin dan buka di browser.*\n\n_Terima kasih telah menjadi bagian dari One Zero Learning._";
         sendWhatsappNotification($user->student->phone_number, $message);
         
         $admin = User::find('20b2a4122c614bb68e41b1a6f3f37780');

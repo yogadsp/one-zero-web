@@ -48,8 +48,8 @@
                                 <tr v-for="(transaction, index) in transactions.data" :key="index">
                                     <td>{{ ++index + (transactions.current_page - 1) * transactions.per_page }}</td>
                                     <td>{{ transaction.code }}</td>
-                                    <td>{{ transaction.exam.category.name }}</td>
-                                    <td>{{ transaction.exam.title }}</td>
+                                    <td>{{ transaction.product_category_name }}</td>
+                                    <td>{{ transaction.product_title }}</td>
                                     <td>{{ transaction.maximum_payment_time }}</td>
                                     <td>{{ formatPrice(transaction.total_purchases) }}</td>
                                     <td>
@@ -61,6 +61,20 @@
                                     <td>
                                         <div class="d-flex order-actions">
                                             <Link :href="`/user/transactions/${transaction.id}`"><i class='bx bx-grid-alt'></i></Link>
+                                            <button
+                                                v-if="transaction.can_be_deleted"
+                                                type="button"
+                                                class="transaction-action transaction-action--danger"
+                                                :disabled="deletingId === transaction.id"
+                                                :aria-label="`Batalkan transaksi ${transaction.code}`"
+                                                title="Batalkan transaksi"
+                                                @click="deleteTransaction(transaction)"
+                                            >
+                                                <i :class="deletingId === transaction.id ? 'bx bx-loader-alt bx-spin' : 'bx bx-trash'"></i>
+                                            </button>
+                                            <span v-else class="transaction-action transaction-action--locked" title="Transaksi yang sudah dibayar atau selesai tidak dapat dibatalkan" aria-label="Transaksi dikunci">
+                                                <i class="bx bx-lock-alt"></i>
+                                            </span>
                                         </div>
                                     </td>
                                 </tr>
@@ -90,11 +104,6 @@
     //import sweet alert2
     import Swal from 'sweetalert2';
 
-    //import ref from vue
-    import {
-        ref
-    } from 'vue';
-
     // import Head from Inertia
     import {
         Head
@@ -117,11 +126,45 @@
         props: {
             transactions: Object
         },
+        data() {
+            return {
+                deletingId: null
+            }
+        },
         methods: {
             formatPrice(value) {
                 let val = (value/1).toFixed(2).replace('.', ',')
                 return 'Rp.' + val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".")
+            },
+            deleteTransaction(transaction) {
+                Swal.fire({
+                    title: 'Batalkan transaksi?',
+                    text: `${transaction.code} akan dihapus dari riwayat aktif. Anda dapat membeli produk ini lagi.`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Ya, batalkan',
+                    cancelButtonText: 'Kembali',
+                    confirmButtonColor: '#d92d20',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (!result.isConfirmed) return;
+
+                    Inertia.delete(`/user/transactions/${transaction.id}`, {
+                        preserveScroll: true,
+                        onStart: () => { this.deletingId = transaction.id },
+                        onFinish: () => { this.deletingId = null }
+                    });
+                });
             }
         }
     }
 </script>
+
+<style scoped>
+.transaction-action { display:inline-grid; place-items:center; width:34px; height:34px; margin-left:8px; border:0; border-radius:9px; font-size:1.05rem; transition:background-color .18s ease,color .18s ease,transform .18s ease; }
+.transaction-action--danger { color:#b42318; background:#fff1f0; cursor:pointer; }
+.transaction-action--danger:hover:not(:disabled),.transaction-action--danger:focus-visible { color:#fff; background:#d92d20; transform:translateY(-1px); outline:2px solid rgba(217,45,32,.22); outline-offset:2px; }
+.transaction-action--danger:disabled { cursor:wait; opacity:.55; }
+.transaction-action--locked { color:#98a2b3; background:#f2f4f7; cursor:not-allowed; }
+@media (prefers-reduced-motion:reduce) { .transaction-action { transition:none; } }
+</style>

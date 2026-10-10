@@ -2,13 +2,21 @@
 
 namespace App\Models\Lesson;
 
+use App\Traits\Uuid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use App\Traits\Uuid;
 
 class QuestionTitle extends Model
 {
+    public const ASSESSMENT_PER_CATEGORY = 1;
+
+    public const ASSESSMENT_OVERALL_PERCENTAGE = 2;
+
+    public const ASSESSMENT_CORRECT_POINTS = 3;
+
+    public const ASSESSMENT_OPTION_POINTS = 4;
+
     use HasFactory, SoftDeletes,Uuid;
 
     public $incrementing = false;

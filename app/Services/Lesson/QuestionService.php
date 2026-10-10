@@ -11,6 +11,7 @@ use Auth;
 use Ramsey\Uuid\Uuid;
 use App\Traits\Uploadable;
 use App\Models\Lesson\ValueCategory;
+use App\Services\Content\EditorImageStorageService;
 
 class QuestionService implements QuestionInterface
 {
@@ -20,7 +21,7 @@ class QuestionService implements QuestionInterface
 
     protected $image_path = 'upload_files/questions';
 
-    public function __construct(QuestionRepo $questionRepo)
+    public function __construct(QuestionRepo $questionRepo, protected EditorImageStorageService $editorImageStorage)
     {
         $this->questionRepo = $questionRepo;
     }
@@ -69,20 +70,20 @@ class QuestionService implements QuestionInterface
         $permissions = DB::transaction(function () use ($request) {
             $input = $request->all();
             $input['audio_played'] = 0;
-            $input['direction'] = $request->type == 1 ? null : $request->direction;
+            $input['direction'] = $request->type == 1 ? null : $this->persistEditorHtml($request->direction, $request);
             $input['audio_input'] = $request->type == 2 ? null : $request->audio_input;
             $input['audio_played_limit'] = $request->audio_input == 0 || $request->type == 2 ? null : $request->audio_played_limit;
             $input['audio_played_limit'] = $request->audio_input == 0 || $request->type == 2 ? null : $request->audio_played_limit;
             $input['audio_answer_time'] = $request->audio_input == 0 || $request->type == 2 ? null : $request->audio_answer_time;
             $input['section'] = ValueCategory::find($request->value_category_id)->section;
-            $input['question'] = empty($request->question) || $request->type == 2 ? 0 : str_replace("../../../..", "", $request->question);
-            $input['option_1'] = empty($request->option_1) || $request->type == 2 ? 0 : str_replace("../../../..", "", $request->option_1);
-            $input['option_2'] = empty($request->option_2) || $request->type == 2 ? 0 : str_replace("../../../..", "", $request->option_2);
-            $input['option_3'] = empty($request->option_3) || $request->type == 2 ? 0 : str_replace("../../../..", "", $request->option_3);
-            $input['option_4'] = empty($request->option_4) || $request->type == 2 ? 0 : str_replace("../../../..", "", $request->option_4);
-            $input['option_5'] = empty($request->option_5) || $request->type == 2 ? null : str_replace("../../../..", "", $request->option_5);
+            $input['question'] = empty($request->question) || $request->type == 2 ? 0 : $this->persistEditorHtml($request->question, $request);
+            $input['option_1'] = empty($request->option_1) || $request->type == 2 ? 0 : $this->persistEditorHtml($request->option_1, $request);
+            $input['option_2'] = empty($request->option_2) || $request->type == 2 ? 0 : $this->persistEditorHtml($request->option_2, $request);
+            $input['option_3'] = empty($request->option_3) || $request->type == 2 ? 0 : $this->persistEditorHtml($request->option_3, $request);
+            $input['option_4'] = empty($request->option_4) || $request->type == 2 ? 0 : $this->persistEditorHtml($request->option_4, $request);
+            $input['option_5'] = empty($request->option_5) || $request->type == 2 ? null : $this->persistEditorHtml($request->option_5, $request);
             $input['answer'] = $request->type == 2 ? null : $request->answer;
-            $input['discussion'] = $request->type == 2 ? null : $request->discussion;
+            $input['discussion'] = $request->type == 2 ? null : $this->persistEditorHtml($request->discussion, $request);
 
 
             if($request->hasFile('audio')){
@@ -113,19 +114,19 @@ class QuestionService implements QuestionInterface
             $question = $this->find($id);
             $input['audio_input'] = $request->type == 2 ? null : $request->audio_input;
             $input['audio_played'] = 0;
-            $input['direction'] = $request->type == 1 ? null : $request->direction;
+            $input['direction'] = $request->type == 1 ? null : $this->persistEditorHtml($request->direction, $request);
             $input['audio_played_limit'] = $request->audio_input == 0 || $request->type == 2 ? null : $request->audio_played_limit;
             $input['audio_played_limit'] = $request->audio_input == 0 || $request->type == 2 ? null : $request->audio_played_limit;
             $input['audio_answer_time'] = $request->audio_input == 0 || $request->type == 2 ? null : $request->audio_answer_time;
             $input['section'] = ValueCategory::find($request->value_category_id)->section;
-            $input['question'] = empty($request->question) || $request->type == 2 ? null : str_replace("../../../..", "", $request->question);
-            $input['option_1'] = empty($request->option_1) || $request->type == 2 ? null : str_replace("../../../..", "", $request->option_1);
-            $input['option_2'] = empty($request->option_2) || $request->type == 2 ? null : str_replace("../../../..", "", $request->option_2);
-            $input['option_3'] = empty($request->option_3) || $request->type == 2 ? null : str_replace("../../../..", "", $request->option_3);
-            $input['option_4'] = empty($request->option_4) || $request->type == 2 ? null : str_replace("../../../..", "", $request->option_4);
-            $input['option_5'] = empty($request->option_5) || $request->type == 2 ? null : str_replace("../../../..", "", $request->option_5);
+            $input['question'] = empty($request->question) || $request->type == 2 ? null : $this->persistEditorHtml($request->question, $request);
+            $input['option_1'] = empty($request->option_1) || $request->type == 2 ? null : $this->persistEditorHtml($request->option_1, $request);
+            $input['option_2'] = empty($request->option_2) || $request->type == 2 ? null : $this->persistEditorHtml($request->option_2, $request);
+            $input['option_3'] = empty($request->option_3) || $request->type == 2 ? null : $this->persistEditorHtml($request->option_3, $request);
+            $input['option_4'] = empty($request->option_4) || $request->type == 2 ? null : $this->persistEditorHtml($request->option_4, $request);
+            $input['option_5'] = empty($request->option_5) || $request->type == 2 ? null : $this->persistEditorHtml($request->option_5, $request);
             $input['answer'] = $request->type == 2 ? null : $request->answer;
-            $input['discussion'] = $request->type == 2 ? null : $request->discussion;
+            $input['discussion'] = $request->type == 2 ? null : $this->persistEditorHtml($request->discussion, $request);
 
             if($request->hasFile('audio')){
                 $this->deleteFile($question->audio, $this->image_path);
@@ -146,6 +147,11 @@ class QuestionService implements QuestionInterface
         });
 
         return $permissions;
+    }
+
+    private function persistEditorHtml(?string $html, $request): ?string
+    {
+        return $html === null ? null : $this->editorImageStorage->persistHtml($html, $request->user()->getAuthIdentifier());
     }
 
     /**

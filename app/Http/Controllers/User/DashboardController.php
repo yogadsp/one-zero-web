@@ -11,16 +11,18 @@ use Carbon\Carbon;
 use App\Services\Contracts\Transaction\TransactionInterface as TransactionService;
 use App\Services\Contracts\Exam\GradeInterface as GradeService;
 use App\Services\Contracts\MasterData\AnnouncementInterface as AnnouncementService;
+use App\Services\Learning\LearningCatalogService;
 
 class DashboardController extends Controller
 {
-    protected $transactionService, $gradeService, $announcementService;
+    protected $transactionService, $gradeService, $announcementService, $learningCatalogService;
 
-    public function __construct(TransactionService $transactionService, GradeService $gradeService, AnnouncementService $announcementService)
+    public function __construct(TransactionService $transactionService, GradeService $gradeService, AnnouncementService $announcementService, LearningCatalogService $learningCatalogService)
     {
         $this->transactionService = $transactionService;
         $this->gradeService = $gradeService;
         $this->announcementService = $announcementService;
+        $this->learningCatalogService = $learningCatalogService;
 
     }
     /**
@@ -32,7 +34,10 @@ class DashboardController extends Controller
     public function __invoke(Request $request)
     {
         $totalExamToday = Grade::where(['user_id' => Auth::user()->id, 'is_finished' => 1])->whereDate('created_at', Carbon::now())->count();
-        $totalTransactionThisMonth = $data = Transaction::whereMonth('created_at', Carbon::now()->month)->whereYear('created_at', Carbon::now()->year)->count();
+        $totalTransactionThisMonth = Transaction::where('user_id', $request->user()->id)
+            ->whereMonth('created_at', Carbon::now()->month)
+            ->whereYear('created_at', Carbon::now()->year)
+            ->count();
         
         return inertia('User/Dashboard/Index', [
             'totalExamToday' => $totalExamToday,
@@ -40,6 +45,8 @@ class DashboardController extends Controller
             'totalTransactionThisMonth' =>  $totalTransactionThisMonth,
             'gradeSummaries' =>  $this->gradeService->getSummaryExamByUser(),
             'announcementSummaries' =>  $this->announcementService->getAnnouncementSummaries(),
+            'recommendedPackages' => $this->learningCatalogService->recommendationsFor($request->user()),
+            'ownedPackageCount' => $this->learningCatalogService->ownedPackageCountFor($request->user()),
         ]);
     }
 }

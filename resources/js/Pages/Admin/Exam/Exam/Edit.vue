@@ -53,9 +53,9 @@
               <label class="form-label">Jenis Waktu Ujian</label>
               <select v-model="form.duration_type" :class="{ 'is-invalid': errors.duration_type }" class="form-select">
                 <option value="">[ Pilih ]</option>
-                <option value="1">Satu Waktu</option>
-                <option value="2">Waktu Per Section</option>
+                <option v-for="option in durationOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
               </select>
+              <div v-if="selectedDurationOption" class="form-text">{{ selectedDurationOption.description }}</div>
               <div v-if="errors.duration_type" class="invalid-feedback">
                 {{ errors.duration_type }}
               </div>
@@ -69,9 +69,9 @@
             </div>
             <div v-if="form.duration_type == 2" v-for="(valueCategory, index) in form.valueCategories" :key="index" class="col-12">
               <label class="form-label">Durasi {{ valueCategory.name }} (Menit)</label>
-              <input type="number" class="form-control" v-model="form.duration_section[index]" placeholder="Durasi" />
-              <div v-if="errors.duration_section + '.' + index" class="invalid-feedback">
-                {{ errors.duration_section + "." + index }}
+              <input type="number" min="1" max="1440" class="form-control" v-model="form.duration_section[index]" :class="{ 'is-invalid': errors[`duration_section.${index}`] }" placeholder="Durasi" />
+              <div v-if="errors[`duration_section.${index}`]" class="invalid-feedback">
+                {{ errors[`duration_section.${index}`] }}
               </div>
             </div>
 
@@ -91,18 +91,7 @@
             </div>
             <div class="col-12">
               <label class="form-label">Deskripsi Ujian</label>
-              <Editor
-                api-key="6509326731AAG5yPL4WpMLyzl8tB_kXXp1zTRDT2o8Krw"
-                v-model="form.description"
-                :init="{
-                  images_upload_url: 'https://wakalahmu.com/admin/upload',
-                  automatic_uploads: true,
-                  height: 400,
-                  plugins: ['advlist autolink lists link image charmap print preview hr anchor pagebreak', 'searchreplace wordcount visualblocks visualchars code fullscreen', 'insertdatetime media nonbreaking save table contextmenu directionality', 'emoticons template paste textcolor colorpicker textpattern imagetools'],
-                  toolbar: 'insertfile undo redo | styleselect | bold italic | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image | print preview media | forecolor backcolor emoticons',
-                  image_advtab: true,
-                }"
-              />
+              <RichTextEditor v-model="form.description" :invalid="Boolean(errors.description)" :height="360" />
               <div v-if="errors.description">
                 {{ errors.description }}
               </div>
@@ -221,7 +210,7 @@ import LayoutAdmin from "../../../../Layouts/Layout.vue";
 import { Link } from "@inertiajs/inertia-vue3";
 
 //import reactive
-import { reactive } from "vue";
+import { computed, reactive } from "vue";
 
 // import Swal
 import Swal from "sweetalert2";
@@ -234,8 +223,7 @@ import { Inertia } from "@inertiajs/inertia";
 //import axios
 import axios from "axios";
 
-//import tinyMCE
-import Editor from "@tinymce/tinymce-vue";
+import RichTextEditor from "../../../../Components/Editor/RichTextEditor.vue";
 
 export default {
   // layout
@@ -245,7 +233,7 @@ export default {
   components: {
     Link,
     Head,
-    Editor,
+    RichTextEditor,
   },
 
   //props
@@ -254,6 +242,7 @@ export default {
     categories: Object,
     exam: Object,
     duration_section: Object,
+    programProfiles: Object,
   },
 
   // initialization composition API
@@ -279,7 +268,13 @@ export default {
 
       // get form API
       questionTitles: [],
+      valueCategories: [],
     });
+
+    const fallbackProfile = { duration_options: [] };
+    const currentProfile = computed(() => props.programProfiles?.[form.category_id] || fallbackProfile);
+    const durationOptions = computed(() => currentProfile.value.duration_options || []);
+    const selectedDurationOption = computed(() => durationOptions.value.find(option => Number(option.value) === Number(form.duration_type)));
 
     // get question title by lesson id
     axios
@@ -298,6 +293,9 @@ export default {
 
     const questionTitleData = () => {
       form.question_title_id = "";
+      form.duration_type = durationOptions.value[0]?.value || "";
+      form.duration = "";
+      form.duration_section = [];
       axios
         .get(`/admin/categories/${form.category_id}/question-titles`)
         .then((response) => {
@@ -359,6 +357,8 @@ export default {
       form,
       submit,
       questionTitleData,
+      durationOptions,
+      selectedDurationOption,
     };
   },
 };

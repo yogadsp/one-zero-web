@@ -75,6 +75,13 @@ use Carbon\Carbon;
 		function sendWhatsappNotification($number, $message)
 		{
 			$token = env('WHATSAPP_TOKEN');
+
+			if (empty($token)) {
+				report(new RuntimeException('WhatsApp notification skipped: WHATSAPP_TOKEN is not configured.'));
+
+				return false;
+			}
+
         	$curl = curl_init();
 
 			$data = [
@@ -86,24 +93,34 @@ use Carbon\Carbon;
 				CURLOPT_URL => 'https://api.fonnte.com/send',
 				CURLOPT_RETURNTRANSFER => true,
 				CURLOPT_ENCODING => '',
-				CURLOPT_MAXREDIRS => 10,
-				CURLOPT_TIMEOUT => 0,
-				CURLOPT_FOLLOWLOCATION => true,
+				CURLOPT_MAXREDIRS => 3,
+				CURLOPT_CONNECTTIMEOUT => 5,
+				CURLOPT_TIMEOUT => 15,
+				CURLOPT_FOLLOWLOCATION => false,
 				CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
 				CURLOPT_CUSTOMREQUEST => 'POST',
-				curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query($data)),
+				CURLOPT_POSTFIELDS => http_build_query($data),
 				CURLOPT_HTTPHEADER => array(
 					'Authorization: '.$token.''
 			),
 			]);
 
 			$response = curl_exec($curl);
+			$statusCode = (int) curl_getinfo($curl, CURLINFO_HTTP_CODE);
+			$error = curl_error($curl);
 
 			curl_close($curl);
-			// return json_decode($response);
+
+			if ($response === false || $statusCode >= 400) {
+				report(new RuntimeException(
+					'WhatsApp notification failed with HTTP status '.$statusCode.($error ? ': '.$error : '.')
+				));
+
+				return false;
+			}
+
+			return true;
 		}
 	}
-
-
 
 

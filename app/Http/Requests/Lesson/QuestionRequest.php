@@ -2,8 +2,10 @@
 
 namespace App\Http\Requests\Lesson;
 
-use Illuminate\Foundation\Http\FormRequest;
 use App\Models\Lesson\QuestionTitle;
+use App\Models\Lesson\ValueCategory;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class QuestionRequest extends FormRequest
 {
@@ -24,23 +26,42 @@ class QuestionRequest extends FormRequest
      */
     public function rules()
     {
-        $questionTitle = QuestionTitle::find(request()->question_title_id);
+        $questionTitle = QuestionTitle::find($this->input('question_title_id'));
 
         $validation = [
-            'type' => 'required',
-            'value_category_id' => 'required',
-            'audio_input' => 'required_if:type,1',
+            'question_title_id' => ['required', 'uuid', 'exists:question_titles,id'],
+            'type' => ['required', 'integer', Rule::in([1, 2])],
+            'value_category_id' => [
+                'required',
+                'uuid',
+                Rule::exists('value_categories', 'id')->where(
+                    fn ($query) => $query->where('category_id', $questionTitle?->category_id)->whereNull('deleted_at')
+                ),
+            ],
+            'audio_input' => ['required_if:type,1', 'nullable', 'boolean'],
+            'option_has_point' => ['required_if:type,1', 'nullable', 'boolean'],
+            'question' => ['required_if:type,1', 'nullable', 'string'],
+            'discussion' => ['nullable', 'string'],
+            'direction' => ['required_if:type,2', 'nullable', 'string'],
         ];
 
-        // if(request()->method('PATCH')) {
-        //     $validation['audio'] = 'sometimes';
-        // } else {
-        //     $validation['audio'] = 'required_if:audio_input,1';
-        // }
+        if ($questionTitle && (int) $this->input('type') === 1) {
+            $validation['answer'] = ['required', 'integer', 'min:1', 'max:'.$questionTitle->total_choices];
+            $valueCategory = ValueCategory::find($this->input('value_category_id'));
+            $requiresPoints = (int) $valueCategory?->assessment_type === ValueCategory::ASSESSMENT_OPTION_POINTS;
 
-        // for($i = 1; $i <= $questionTitle->total_choices; $i++) {
-        //     $validation['option_'.$i] = 'required';
-        // }
+            if ($requiresPoints) {
+                $validation['option_has_point'] = ['accepted'];
+            }
+
+            for ($i = 1; $i <= (int) $questionTitle->total_choices; $i++) {
+                $validation['option_'.$i] = ['required', 'string'];
+                $validation['option_'.$i.'_point'] = [
+                    Rule::requiredIf($requiresPoints || $this->boolean('option_has_point')),
+                    'nullable', 'numeric', 'min:0', 'max:1000',
+                ];
+            }
+        }
 
         return $validation;
     }
@@ -57,6 +78,7 @@ class QuestionRequest extends FormRequest
             'option_5' => __('question.option_5'),
             'answer' => __('question.answer'),
             'section' => __('question.section'),
+            'option_has_point' => 'penggunaan poin pilihan',
         ];
     }
 }

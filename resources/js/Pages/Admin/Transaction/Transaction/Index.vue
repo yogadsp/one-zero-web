@@ -34,7 +34,7 @@
                                     <th>No</th>
                                     <th>Kode Transaksi</th>
                                     <th>Kategori</th>
-                                    <th>Judul Ujian</th>
+                                    <th>Produk</th>
                                     <th>Nama User</th>
                                     <th>Batas Pembayaran</th>
                                     <th>Total</th>
@@ -49,8 +49,8 @@
                                 <tr v-for="(transaction, index) in transactions.data" :key="index">
                                     <td>{{ ++index + (transactions.current_page - 1) * transactions.per_page }}</td>
                                     <td>{{ transaction.code }}</td>
-                                    <td>{{ transaction.exam.category.name }}</td>
-                                    <td>{{ transaction.exam.title }}</td>
+                                    <td>{{ transaction.product_category_name }}</td>
+                                    <td>{{ transaction.product_title }}</td>
                                     <td>{{ transaction.user.name }}</td>
                                     <td>{{ transaction.maximum_payment_time }}</td>
                                     <td>{{ formatPrice(transaction.total_purchases) }}</td>
@@ -65,6 +65,20 @@
                                         <div class="d-flex order-actions">
                                             <Link :href="`/admin/transactions/${transaction.id}`" style="margin:5px;"><i class='bx bx-grid-alt'></i></Link>
                                             <Link :href="`/admin/transactions/${transaction.id}/invoice`" style="margin:5px;"><i class='bx bx-credit-card-front'></i></Link>
+                                            <button
+                                                v-if="transaction.can_be_deleted"
+                                                type="button"
+                                                class="transaction-action transaction-action--danger"
+                                                :disabled="deletingId === transaction.id"
+                                                :aria-label="`Hapus transaksi ${transaction.code}`"
+                                                title="Hapus transaksi"
+                                                @click="deleteTransaction(transaction)"
+                                            >
+                                                <i :class="deletingId === transaction.id ? 'bx bx-loader-alt bx-spin' : 'bx bx-trash'"></i>
+                                            </button>
+                                            <span v-else class="transaction-action transaction-action--locked" title="Transaksi yang sudah dibayar atau selesai tidak dapat dihapus" aria-label="Transaksi dikunci">
+                                                <i class="bx bx-lock-alt"></i>
+                                            </span>
                                         </div>
                                     </td>
                                 </tr>
@@ -96,6 +110,9 @@
         Head
     } from '@inertiajs/inertia-vue3';
 
+    import { Inertia } from '@inertiajs/inertia';
+    import Swal from 'sweetalert2';
+
 
     export default {
         // layout
@@ -112,11 +129,45 @@
         props: {
             transactions: Object
         },
+        data() {
+            return {
+                deletingId: null
+            }
+        },
         methods: {
             formatPrice(value) {
                 let val = (value/1).toFixed(2).replace('.', ',')
                 return 'Rp.' + val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".")
+            },
+            deleteTransaction(transaction) {
+                Swal.fire({
+                    title: 'Hapus transaksi?',
+                    text: `${transaction.code} akan dihapus dari daftar aktif. User dapat melakukan pembelian ulang.`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Ya, hapus',
+                    cancelButtonText: 'Batal',
+                    confirmButtonColor: '#d92d20',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (!result.isConfirmed) return;
+
+                    Inertia.delete(`/admin/transactions/${transaction.id}`, {
+                        preserveScroll: true,
+                        onStart: () => { this.deletingId = transaction.id },
+                        onFinish: () => { this.deletingId = null }
+                    });
+                });
             }
         }
     }
 </script>
+
+<style scoped>
+.transaction-action { display:inline-grid; place-items:center; width:34px; height:34px; margin:5px; border:0; border-radius:9px; font-size:1.05rem; transition:background-color .18s ease,color .18s ease,transform .18s ease; }
+.transaction-action--danger { color:#b42318; background:#fff1f0; cursor:pointer; }
+.transaction-action--danger:hover:not(:disabled),.transaction-action--danger:focus-visible { color:#fff; background:#d92d20; transform:translateY(-1px); outline:2px solid rgba(217,45,32,.22); outline-offset:2px; }
+.transaction-action--danger:disabled { cursor:wait; opacity:.55; }
+.transaction-action--locked { color:#98a2b3; background:#f2f4f7; cursor:not-allowed; }
+@media (prefers-reduced-motion:reduce) { .transaction-action { transition:none; } }
+</style>

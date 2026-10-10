@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Lesson;
 
+use App\Services\Exam\ExamProgramProfileService;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class QuestionTitleRequest extends FormRequest
 {
@@ -23,15 +25,23 @@ class QuestionTitleRequest extends FormRequest
      */
     public function rules()
     {
+        $profileService = app(ExamProgramProfileService::class);
+        $categoryId = $this->input('category_id');
+
         return [
-            'category_id' => 'required',
-            'name' => 'required|string|max:191',
-            'total_choices' => 'required',
-            'total_section' => 'required',
-            'add_value_category' => 'required',
-            'assessment_type' => 'required_if:add_value_category,1',
-            'show_answer' => 'required',
-            'minimum_grade' => 'required_if:show_answer,1',
+            'category_id' => ['required', 'uuid', 'exists:categories,id'],
+            'name' => ['required', 'string', 'max:191'],
+            'total_choices' => ['required', 'integer', 'min:2', 'max:5'],
+            'total_section' => ['required', 'integer', 'min:1', 'max:100'],
+            'add_value_category' => ['required', 'boolean'],
+            'assessment_type' => [
+                'nullable',
+                'required_if:add_value_category,1',
+                'integer',
+                Rule::in($profileService->allowedQuestionAssessmentTypes($categoryId)),
+            ],
+            'show_answer' => ['required', 'boolean'],
+            'minimum_grade' => ['nullable', 'required_if:show_answer,1', 'numeric', 'min:0'],
         ];
     }
 

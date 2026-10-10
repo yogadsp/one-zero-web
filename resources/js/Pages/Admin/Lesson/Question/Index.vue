@@ -87,7 +87,8 @@
                                 <input type="text" v-model="search" class="form-control ps-5 radius-20" placeholder="Cari Berdasarkan Nama...."> <span class="position-absolute top-50 product-show translate-middle-y"><i class="bx bx-search"></i></span>
                             </div>
                         </form>
-                        <div class="ms-auto">
+                        <div class="ms-auto d-flex flex-wrap gap-2">
+                            <Link :href="`/admin/question-titles/${questionTitle.id}/questions/import`" class="btn btn-outline-primary mt-2 mt-lg-0"><i class="bx bx-upload"></i> Impor DOCX/PDF</Link>
                             <Link :href="`/admin/question-titles/${questionTitle.id}/questions/create`" class="btn btn-primary mt-2 mt-lg-0"><i class="bx bxs-plus-square"></i> Tambah Soal</Link>
                         </div>
                     </div>

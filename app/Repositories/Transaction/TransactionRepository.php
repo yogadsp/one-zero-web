@@ -32,26 +32,33 @@ class TransactionRepository extends BaseRepository implements TransactionInterfa
     {
         $transactions = $this->model->query();
         if(isset($params->search) && !empty($params->search)) $transactions->where('code', 'like', '%' . $params->search . '%');
-        $transactions = $transactions->with(['user', 'exam', 'exam.category'])->orderBy('created_at', 'ASC')->paginate($limit);
+        $transactions = $transactions->with(['user', 'exam.category', 'learningMaterial.category'])->orderBy('created_at', 'ASC')->paginate($limit);
         return $transactions;
     }
 
     public function getTransactionMonthly($limit = 10)
     {
-        $transactions = $this->model->whereMonth('created_at', Carbon::now()->format('m'))->whereYear('created_at', Carbon::now()->format('Y'))->with(['user', 'exam', 'exam.category'])->orderBy('created_at', 'DESC')->paginate($limit);
+        $transactions = $this->model->whereMonth('created_at', Carbon::now()->format('m'))->whereYear('created_at', Carbon::now()->format('Y'))->with(['user', 'exam.category', 'learningMaterial.category'])->orderBy('created_at', 'DESC')->paginate($limit);
         return $transactions;
     }
 
     public function find($id)
     {
-        return $this->model->with(['exam','user', 'exam.category', 'user.student', 'user.student.province', 'user.student.city', 'user.student.district', 'user.student.village'])->find($id);
+        return $this->model->with(['exam.category', 'learningMaterial.category', 'user', 'user.student', 'user.student.province', 'user.student.city', 'user.student.district', 'user.student.village'])->find($id);
+    }
+
+    public function findForUser($id, $userId)
+    {
+        return $this->model->with(['exam.category', 'learningMaterial.category', 'user.student.province', 'user.student.city', 'user.student.district', 'user.student.village'])
+            ->where('user_id', $userId)
+            ->find($id);
     }
 
     public function getAllPaginatedWithParamsByUser($params, $limit = 10)
     {
         $transactions = $this->model;
         if(isset($params->search) && !empty($params->search)) $transactions->where('code', 'like', '%' . $params->search . '%');
-        $transactions = $transactions->with(['user', 'exam.category'])->where('user_id', Auth::user()->id)->orderBy('created_at', 'DESC')->paginate($limit);
+        $transactions = $transactions->with(['user', 'exam.category', 'learningMaterial.category'])->where('user_id', Auth::user()->id)->orderBy('created_at', 'DESC')->paginate($limit);
         return $transactions;
     }
 
@@ -59,14 +66,14 @@ class TransactionRepository extends BaseRepository implements TransactionInterfa
     {
         $transactions = $this->model;
         if(isset($params->search) && !empty($params->search)) $transactions->where('code', 'like', '%' . $params->search . '%');
-        $transactions = $transactions->with(['exam', 'exam.category'])->where('voucher_activated', 1)->where('user_id', Auth::user()->id)->orderBy('created_at', 'DESC')->paginate($limit);
+        $transactions = $transactions->with(['exam.category', 'learningMaterial.category'])->where('voucher_activated', 1)->where('user_id', Auth::user()->id)->orderBy('created_at', 'DESC')->paginate($limit);
         return $transactions;
     }
 
     public function getSummaryTransactionByUser($limit = 5)
     {
         $transactions = $this->model;
-        $transactions = $transactions->with(['exam', 'exam.category'])->where('user_id', Auth::user()->id)->orderBy('created_at', 'DESC')->limit($limit)->get();
+        $transactions = $transactions->with(['exam.category', 'learningMaterial.category'])->where('user_id', Auth::user()->id)->orderBy('created_at', 'DESC')->limit($limit)->get();
         return $transactions;
     }
 

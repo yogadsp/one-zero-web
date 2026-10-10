@@ -1,0 +1,105 @@
+{
+    "captured_at": "2026-09-19T04:33:41+07:00",
+    "learning_materials": [
+        {
+            "id": "1b483390-b1d0-4e14-b66b-40b70d3c0fe2",
+            "exam_id": "9110671e-881c-4764-843b-9002bc226a5d",
+            "type": "live_class",
+            "title": "CPNS full",
+            "description": "ggggg",
+            "url": "https://www.youtube.com/watch?v=ahsVEmu9AoQ",
+            "starts_at": "2026-09-18 13:00:00",
+            "ends_at": "2026-09-20 15:00:00",
+            "is_published": 1,
+            "position": 1,
+            "created_at": "2026-09-18 22:59:34",
+            "updated_at": "2026-09-18 22:59:34",
+            "deleted_at": null
+        },
+        {
+            "id": "387c693b-0cd6-4224-a78f-b8e0776a1f0e",
+            "exam_id": "9110671e-881c-4764-843b-9002bc226a5d",
+            "type": "video",
+            "title": "CPNS full",
+            "description": "gggggg",
+            "url": "https://www.youtube.com/watch?v=ahsVEmu9AoQ",
+            "starts_at": null,
+            "ends_at": null,
+            "is_published": 1,
+            "position": 1,
+            "created_at": "2026-09-18 23:00:11",
+            "updated_at": "2026-09-18 23:00:11",
+            "deleted_at": null
+        },
+        {
+            "id": "44e70784-c2de-4d9d-9ef4-2b28fc1a6dae",
+            "exam_id": "49e1686d-0433-4d68-8040-9019ce3ef0e2",
+            "type": "live_class",
+            "title": "tes",
+            "description": "ggg",
+            "url": "https://www.youtube.com/",
+            "starts_at": "2026-09-15 14:36:00",
+            "ends_at": "2026-09-17 14:36:00",
+            "is_published": 1,
+            "position": 1,
+            "created_at": "2026-09-15 14:36:31",
+            "updated_at": "2026-09-18 22:59:41",
+            "deleted_at": "2026-09-18 22:59:41"
+        }
+    ],
+    "transactions": [
+        {
+            "id": "2da9ecd9-5c78-4ecd-a035-5c78f803b77a",
+            "created_at": "2026-09-18 23:02:48",
+            "updated_at": "2026-09-18 23:05:21",
+            "deleted_at": null,
+            "user_id": "62bcbaec-82a9-44f5-985b-e5abcc83cccf",
+            "exam_id": "9110671e-881c-4764-843b-9002bc226a5d",
+            "code": "INV.260918.0001",
+            "voucher_activated": 0,
+            "voucher_used": 0,
+            "total_purchases": 20000,
+            "maximum_payment_time": "2026-09-20 23:02:48",
+            "transaction_status": "done",
+            "voucher_token": "TEEHEQCMZZS28AL"
+        },
+        {
+            "id": "413fdc1c-e886-4c7a-acc8-ebbcec4f3553",
+            "created_at": "2026-09-18 23:06:01",
+            "updated_at": "2026-09-18 23:06:01",
+            "deleted_at": null,
+            "user_id": "62bcbaec-82a9-44f5-985b-e5abcc83cccf",
+            "exam_id": "9110671e-881c-4764-843b-9002bc226a5d",
+            "code": "INV.260918.0002",
+            "voucher_activated": 0,
+            "voucher_used": 0,
+            "total_purchases": 20000,
+            "maximum_payment_time": "2026-09-20 23:06:01",
+            "transaction_status": "pending",
+            "voucher_token": null
+        },
+        {
+            "id": "c15ea12a-0ac8-424b-9465-77f777f6dde9",
+            "created_at": "2023-05-28 12:28:21",
+            "updated_at": "2023-05-28 12:28:21",
+            "deleted_at": null,
+            "user_id": "62bcbaec-82a9-44f5-985b-e5abcc83cccf",
+            "exam_id": "49e1686d-0433-4d68-8040-9019ce3ef0e2",
+            "code": "INV.230528.0001",
+            "voucher_activated": 1,
+            "voucher_used": 1,
+            "total_purchases": 99000,
+            "maximum_payment_time": "2023-05-30 12:28:21",
+            "transaction_status": "done",
+            "voucher_token": "Q9P9XDSNFML3SAZ"
+        }
+    ],
+    "grades": [
+        {
+            "id": "38bb5b7f-effd-4af0-89d0-952de3e0c366",
+            "exam_id": "49e1686d-0433-4d68-8040-9019ce3ef0e2",
+            "user_id": "62bcbaec-82a9-44f5-985b-e5abcc83cccf",
+            "created_at": "2026-09-18 23:06:25"
+        }
+    ]
+}

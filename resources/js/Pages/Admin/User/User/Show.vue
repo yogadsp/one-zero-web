@@ -67,7 +67,7 @@
                                 <tr v-if="user.is_active == 0 && user.student">
                                     <th>Kirim Verifikasi Akun Via WhatsApp</th>
                                     <td>:</td>
-                                    <td><a :href="`https://wa.me/${user.student.phone_number}?text=${encodeURI('hallo, saya admin dari e-TOEFL, akun anda telah terdaftar di platform kami, berikut link verifikasi untuk aktivasi akun anda.\n\nNama: '+ user.name +'\nEmail: '+ user.email +'\n\n '+ verificationLink + '\n\n*jika link tidak bisa diklik, silakan copy dan pastekan link di browser anda.* \n\nterimakasih telah menjadi bagian dari e-TOEFL, semoga kami dapat membantu proses belajar anda.')}`">Klik Disini Untuk Mengirim Verifikasi Via WhatsApp</a></td>
+                                    <td><a :href="`https://wa.me/${user.student.phone_number}?text=${encodeURI('Halo, saya admin One Zero Learning. Akun Anda telah terdaftar. Berikut tautan verifikasi untuk aktivasi akun Anda.\n\nNama: '+ user.name +'\nEmail: '+ user.email +'\n\n'+ verificationLink + '\n\n*Jika tautan tidak bisa diklik, silakan salin dan buka melalui browser.*\n\nTerima kasih telah menjadi bagian dari One Zero Learning.')}`">Klik Disini Untuk Mengirim Verifikasi Via WhatsApp</a></td>
                                 </tr>
 
                                 <tr v-if="user.is_active == 0 && user.student">

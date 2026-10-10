@@ -24,9 +24,9 @@ class DetailValueCategoryRequest extends FormRequest
     public function rules()
     {
         return [
-            'min_grade' => 'required',
-            'max_grade' => 'required',
-            'final_grade' => 'required',
+            'min_grade' => ['required', 'numeric', 'min:0'],
+            'max_grade' => ['required', 'numeric', 'gte:min_grade'],
+            'final_grade' => ['required', 'numeric', 'min:0'],
         ];
     }
 

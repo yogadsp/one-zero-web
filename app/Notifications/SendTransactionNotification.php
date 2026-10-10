@@ -52,12 +52,13 @@ class SendTransactionNotification extends Notification
 
     public function toTelegram($notifiable)
     {
+        $this->transaction->loadMissing(['exam.category', 'learningMaterial.category', 'user']);
         $content = 'Transaksi Terbaru'.PHP_EOL;
         $content .= 'No Invoice: '.$this->transaction->code.PHP_EOL;
         $content .= 'Tanggal Invoice : '.$this->transaction->created_at.PHP_EOL;
         $content .= 'Nama User: '.$this->transaction->user->name.PHP_EOL;
         $content .= 'Email User: '.$this->transaction->user->email.PHP_EOL;
-        $content .= 'Judul Ujian: '.$this->transaction->exam->title.PHP_EOL;
+        $content .= 'Produk: '.$this->transaction->product_title.PHP_EOL;
         $content .= 'Total Pembayaran: '.number_format($this->transaction->total_purchases).PHP_EOL;
 
         return TelegramMessage::create()

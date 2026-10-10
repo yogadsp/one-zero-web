@@ -3,12 +3,10 @@
 namespace App\Http\Controllers\User\Transaction;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Http\Requests\Transaction\VoucherActivationRequest;
 use App\Services\Contracts\Transaction\TransactionInterface as TransactionService;
-use Auth;
-use App\Models\Transaction\Transaction;
-use App\Models\MasterData\Student;
-use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class VoucherActivationController extends Controller
 {
@@ -32,39 +30,25 @@ class VoucherActivationController extends Controller
     public function index(Request $request)
     {
         return inertia('User/Transaction/VoucherActivation/Index', [
-            'voucherActivations' => $this->transactionService->getAllVoucherActivatedPaginatedWithParamsByUser($request)
+            'voucherActivations' => $this->transactionService->getAllVoucherActivatedPaginatedWithParamsByUser($request),
         ]);
     }
 
-    public function store(Request $request)
+    public function store(VoucherActivationRequest $request)
     {
-        if(empty($request->token)) return redirect()->back()->with('error', '<b>Aktivasi Gagal.</b> Token tidak boleh kosong.');
+        try {
+            $this->transactionService->activateVoucherForUser($request->validated('token'), $request->user());
+            $request->session()->flash('success', 'Voucher berhasil diaktifkan. Produk belajar sudah masuk ke akun Anda.');
 
-        $transaction = Transaction::where(['user_id' => Auth::user()->id, 'voucher_token' => $request->token])->first();
+            return $request->header('X-Inertia')
+                ? Inertia::location(route('user.voucher-activations.index'))
+                : redirect()->back();
+        } catch (\DomainException $exception) {
+            $request->session()->flash('error', $exception->getMessage());
 
-        if(!$transaction) return redirect()->back()->with('error', '<b>Aktivasi Gagal.</b> Data voucher dengan token <b>'.$request->token.'</b> tidak ditemukan.');
-
-        if($transaction->voucher_activated == 1) return redirect()->back()->with('error', '<b>Aktivasi Gagal.</b> Data voucher dengan token <b>'.$request->token.'</b> sudah terpakai.');
-        
-        $transaction->update([
-            'voucher_used' => 1,
-            'voucher_activated' => 1,
-        ]);
-
-        $student = Student::find(Auth::user()->student->id);
-        
-        $memberData = [
-            'category_id' => $transaction->category_id,
-        ];
-
-        $arrayMemberData = $student->member_access == null ? [] : $student->member_access;
-        array_push($arrayMemberData, $memberData);
-
-        $student->update([
-            'member_access' => $arrayMemberData,
-            'is_member' => 1
-        ]);
-
-        return redirect()->back()->with('success', '<b>Aktivasi Berhasil.</b> Data voucher dengan token <b>'.$request->token.'</b> sudah berhasil diaktifkan.');
+            return $request->header('X-Inertia')
+                ? Inertia::location(route('user.voucher-activations.index'))
+                : redirect()->back();
+        }
     }
 }

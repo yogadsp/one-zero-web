@@ -1,184 +1,80 @@
 <template>
-    <Head>
-        <title>{{ appName}} - Dashboard</title>
-    </Head>
-    <!--start page wrapper -->
-    <div class="page-wrapper">
+    <Head><title>Beranda Belajar</title></Head>
+    <div class="page-wrapper learning-page">
         <div class="page-content">
-            <div class="row row-cols-1 row-cols-md-2 row-cols-xl-2">
-                <div class="col">
-                    <div class="card radius-10 border-start border-0 border-3 border-info">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div>
-                                    <p class="mb-0 text-secondary">Tes Hari Ini</p>
-                                    <h4 class="my-1 text-info">{{ totalExamToday }}</h4>
-                                </div>
-                                <div class="widgets-icons-2 rounded-circle bg-gradient-scooter text-white ms-auto"><i class='bx bxs-message-square-edit'></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col">
-                    <div class="card radius-10 border-start border-0 border-3 border-success">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div>
-                                    <p class="mb-0 text-secondary">Transaksi Bulan Ini</p>
-                                    <h4 class="my-1 text-success">{{ totalTransactionThisMonth }}</h4>
-                                </div>
-                                <div class="widgets-icons-2 rounded-circle bg-gradient-ohhappiness text-white ms-auto"><i class='bx bxs-grid-alt' ></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div><!--end row-->
+            <LearningHero />
 
-            <div class="card radius-10 border-start border-0 border-3 border-success">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div>
-                            <h6 class="mb-3">Pengumuman</h6>
-                        </div>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="table mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>No</th>
-                                    <th>Perihal</th>
-                                    <th>Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr v-if="!announcementSummaries.length">
-                                    <td colspan="7" align="center">Data Pengumuman kosong</td>
-                                </tr>
-                                <tr v-for="(announcementSummary, index) in announcementSummaries" :key="index">
-                                    <td>{{ ++index }}</td>
-                                    <td>{{ announcementSummary.title }}</td>
-                                    <td>
-                                        <div class="d-flex order-actions">
-                                            <Link :href="`/user/announcements/${announcementSummary.id}`" class="ms-2"><i class='bx bx-grid-alt'></i></Link>
-                                        </div>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+            <section class="learning-stats" aria-label="Ringkasan aktivitas">
+                <article><span class="learning-stat-icon is-blue"><i class="bx bx-edit-alt"></i></span><div><strong>{{ totalExamToday }}</strong><span>Tryout hari ini</span></div></article>
+                <article><span class="learning-stat-icon is-purple"><i class="bx bx-package"></i></span><div><strong>{{ ownedPackageCount }}</strong><span>Produk belajar aktif</span></div></article>
+                <article><span class="learning-stat-icon is-green"><i class="bx bx-transfer"></i></span><div><strong>{{ totalTransactionThisMonth }}</strong><span>Transaksi bulan ini</span></div></article>
+            </section>
 
-            <div class="card radius-10 border-start border-0 border-3 border-primary">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div>
-                            <h6 class="mb-3">Ringkasan Tes Terakhir</h6>
-                        </div>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="table mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>No</th>
-                                    <th>Kategori</th>
-                                    <th>Judul Ujian</th>
-                                    <th>Waktu Mulai</th>
-                                    <th>Waktu Selesai</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr v-if="!gradeSummaries.length">
-                                    <td colspan="7" align="center">Tidak ada riwayat ujian soal</td>
-                                </tr>
-                                <tr v-for="(grade, index) in gradeSummaries" :key="index">
-                                    <td>{{ ++index }}</td>
-                                    <td><span class="badge bg-primary">{{ grade.category.name }}</span></td>
-                                    <td>{{ grade.exam.title }}</td>
-                                    <td>{{ formatDateWithTime(grade.start_time) }}</td>
-                                    <td>{{ formatDateWithTime(grade.end_time) }}</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+            <section class="learning-section">
+                <div class="learning-section__heading">
+                    <div><span class="learning-eyebrow learning-eyebrow--dark">PILIHAN UNTUKMU</span><h2>Rekomendasi Produk Belajar</h2><p>Tryout, video rekaman, dan kelas online dapat dipilih serta dibeli secara terpisah.</p></div>
+                    <Link href="/user/learning" class="learning-text-link">Lihat semua <i class="bx bx-right-arrow-alt"></i></Link>
                 </div>
-            </div>
+                <div v-if="recommendedPackages.length" class="learning-package-grid">
+                    <LearningPackageCard v-for="item in recommendedPackages" :key="item.id" :learning-package="item" />
+                </div>
+                <div v-else class="learning-empty"><i class="bx bx-book-open"></i><h3>Katalog sedang disiapkan</h3><p>Admin dapat menerbitkan paket dari data ujian yang sudah ada.</p></div>
+            </section>
 
-            <div class="card radius-10 border-start border-0 border-3 border-danger">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div>
-                            <h6 class="mb-3">Ringkasan Transaksi Terakhir</h6>
+            <section class="learning-dashboard-grid">
+                <article class="learning-panel">
+                    <div class="learning-panel__heading"><div><span class="learning-eyebrow learning-eyebrow--dark">PROGRES</span><h2>Aktivitas Tryout</h2></div><Link href="/user/grades">Riwayat</Link></div>
+                    <div v-if="gradeSummaries.length" class="learning-activity-list">
+                        <div v-for="grade in gradeSummaries" :key="grade.id" class="learning-activity-item">
+                            <span class="learning-activity-item__icon"><i class="bx bx-check-circle"></i></span>
+                            <div><strong>{{ grade.exam.title }}</strong><span>{{ grade.category.name }} · {{ formatDate(grade.start_time) }}</span></div>
                         </div>
                     </div>
-                    <div class="table-responsive">
-                        <table class="table align-middle mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                <th>No</th>
-                                <th>Kode Transaksi</th>
-                                <th>Tanggal Transaksi</th>
-                                <th>Kategori</th>
-                                <th>Judul Ujian</th>
-                                <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr v-if="!transactionSummaries.length">
-                                    <td colspan="6" align="center">Tidak ada riwayat traksaksi</td>
-                                </tr>
-                                <tr v-for="(transactionSummary, index) in transactionSummaries" :key="index">
-                                    <td>{{ ++index }}</td>
-                                    <td>{{ transactionSummary.code }}</td>
-                                    <td>{{ transactionSummary.created_at }}</td>
-                                    <td>{{ transactionSummary.exam.category.name }}</td>
-                                    <td>{{ transactionSummary.exam.title }}</td>
-                                    <td>
-                                        <span class="badge bg-warning" v-if="transactionSummary.transaction_status == 'pending'">Pending</span>
-                                        <span class="badge bg-primary" v-if="transactionSummary.transaction_status == 'paid'">Lunas</span>
-                                        <span class="badge bg-danger" v-if="transactionSummary.transaction_status == 'failed'">Gagal</span>
-                                        <span class="badge bg-success" v-if="transactionSummary.transaction_status == 'done'">Selesai</span>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    <div v-else class="learning-panel-empty">Belum ada tryout yang diselesaikan.</div>
+                </article>
+
+                <article class="learning-panel">
+                    <div class="learning-panel__heading"><div><span class="learning-eyebrow learning-eyebrow--dark">PEMBELIAN</span><h2>Transaksi Terakhir</h2></div><Link href="/user/transactions">Semua</Link></div>
+                    <div v-if="transactionSummaries.length" class="learning-activity-list">
+                        <Link v-for="transaction in transactionSummaries" :key="transaction.id" :href="`/user/transactions/${transaction.id}`" class="learning-activity-item">
+                            <span class="learning-activity-item__icon is-orange"><i class="bx bx-receipt"></i></span>
+                            <div><strong>{{ transaction.product_title }}</strong><span>{{ transaction.code }} · {{ transaction.created_at }}</span></div>
+                            <span class="learning-status" :class="`is-${transaction.transaction_status}`">{{ statusLabel(transaction.transaction_status) }}</span>
+                        </Link>
                     </div>
-                </div>
-            </div>
+                    <div v-else class="learning-panel-empty">Belum ada transaksi.</div>
+                </article>
+            </section>
+
+            <section v-if="announcementSummaries.length" class="learning-panel learning-announcements">
+                <div class="learning-panel__heading"><div><span class="learning-eyebrow learning-eyebrow--dark">INFORMASI</span><h2>Pengumuman</h2></div><Link href="/user/announcements">Semua</Link></div>
+                <Link v-for="announcement in announcementSummaries" :key="announcement.id" :href="`/user/announcements/${announcement.id}`" class="learning-announcement-item"><i class="bx bx-bell"></i><span>{{ announcement.title }}</span><i class="bx bx-chevron-right"></i></Link>
+            </section>
         </div>
     </div>
-    <!--end page wrapper -->
 </template>
 
 <script>
-    //import layout admin
-    import LayoutUser from '../../../Layouts/Layout.vue';
+import { Head, Link } from '@inertiajs/inertia-vue3';
+import LayoutUser from '../../../Layouts/Layout.vue';
+import LearningHero from '../../../Components/Learning/LearningHero.vue';
+import LearningPackageCard from '../../../Components/Learning/LearningPackageCard.vue';
 
-    // import Link
-    import { Link } from '@inertiajs/inertia-vue3';
-
-    // import Head from Inertia
-    import {
-        Head
-    } from '@inertiajs/inertia-vue3';
-
-    export default {
-        // layout
-        layout: LayoutUser,
-        // register components
-        components: {
-            Head,
-            Link,
-        },
-        // props
-        props: {
-            totalExamToday: Object,
-            transactionSummaries: Object,
-            gradeSummaries: Object,
-            announcementSummaries: Object,
-            totalTransactionThisMonth: Object,
-        },
-    }
+export default {
+    layout: LayoutUser,
+    components: { Head, Link, LearningHero, LearningPackageCard },
+    props: {
+        totalExamToday: Number,
+        transactionSummaries: Array,
+        gradeSummaries: Array,
+        announcementSummaries: Array,
+        totalTransactionThisMonth: Number,
+        recommendedPackages: Array,
+        ownedPackageCount: Number,
+    },
+    methods: {
+        formatDate(value) { return value ? new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium' }).format(new Date(value)) : '-'; },
+        statusLabel(status) { return { pending: 'Menunggu', paid: 'Dibayar', failed: 'Gagal', done: 'Selesai' }[status] || status; },
+    },
+};
 </script>

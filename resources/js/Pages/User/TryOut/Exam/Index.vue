@@ -131,7 +131,7 @@
                 })
                 .then((result) => {
                     if (result.isConfirmed) {
-                        Inertia.get(`/user/transactions/exams/${id}/buy`);
+                        Inertia.post(`/user/transactions/exams/${id}/buy`);
                     }
                 })
             }

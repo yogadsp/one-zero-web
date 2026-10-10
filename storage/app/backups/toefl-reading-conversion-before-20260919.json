@@ -1,0 +1,12 @@
+[
+    {
+        "id": "f17fd61f-bc34-485f-a0a2-78677666b458",
+        "created_at": "2023-05-24T00:55:00.000000Z",
+        "updated_at": "2023-05-24T00:55:09.000000Z",
+        "deleted_at": null,
+        "value_category_id": "03598a55-7910-48b1-8adf-ccf2e33b332e",
+        "min_grade": 36,
+        "max_grade": 35,
+        "final_grade": 52
+    }
+]

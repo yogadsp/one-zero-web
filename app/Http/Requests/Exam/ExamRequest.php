@@ -2,10 +2,22 @@
 
 namespace App\Http\Requests\Exam;
 
+use App\Services\Content\RichTextSanitizer;
+use App\Services\Exam\ExamProgramProfileService;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class ExamRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        if (is_string($this->input('description'))) {
+            $this->merge([
+                'description' => app(RichTextSanitizer::class)->sanitize($this->input('description')),
+            ]);
+        }
+    }
+
     /**
      * Determine if the user is authorized to make this request.
      *
@@ -23,24 +35,32 @@ class ExamRequest extends FormRequest
      */
     public function rules()
     {
+        $profileService = app(ExamProgramProfileService::class);
+        $categoryId = $this->input('category_id');
+
         return [
-            'category_id' => 'required',
-            'question_title_id' => 'required',
-            'title' => 'required',
-            'duration_type' => 'required',
-            // 'duration' => 'required',
-            'description' => 'required',
-            'random_question' => 'required',
-            'random_answer' => 'required',
-            'show_answer' => 'required',
-            'show_question_number_navigation' => 'required',
-            'show_question_number' => 'required',
-            'next_question_automatically' => 'required',
-            'show_prev_next_button' => 'required',
-            'type_option' => 'required',
-            'price' => 'required',
-            'total_tolerance' => 'required',
-            // 'duration_section.*' => 'required',
+            'category_id' => ['required', 'uuid', 'exists:categories,id'],
+            'question_title_id' => [
+                'required',
+                'uuid',
+                Rule::exists('question_titles', 'id')->where(fn ($query) => $query->where('category_id', $categoryId)->whereNull('deleted_at')),
+            ],
+            'title' => ['required', 'string', 'max:191'],
+            'duration_type' => ['required', 'integer', Rule::in($profileService->allowedDurationTypes($categoryId))],
+            'duration' => ['nullable', 'required_if:duration_type,1', 'integer', 'min:1', 'max:1440'],
+            'duration_section' => ['nullable', 'required_if:duration_type,2', 'array'],
+            'duration_section.*' => ['required_if:duration_type,2', 'integer', 'min:1', 'max:1440'],
+            'description' => ['required', 'string', 'max:50000'],
+            'random_question' => ['required', 'boolean'],
+            'random_answer' => ['required', 'boolean'],
+            'show_answer' => ['required', 'boolean'],
+            'show_question_number_navigation' => ['required', 'boolean'],
+            'show_question_number' => ['required', 'boolean'],
+            'next_question_automatically' => ['required', 'boolean'],
+            'show_prev_next_button' => ['required', 'boolean'],
+            'type_option' => ['required', 'integer', Rule::in([1, 2])],
+            'price' => ['required', 'numeric', 'min:0'],
+            'total_tolerance' => ['required', 'integer', 'min:0', 'max:100'],
         ];
     }
 
